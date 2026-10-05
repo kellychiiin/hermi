@@ -13,5 +13,8 @@ html {
 }
 
 body {
-  @apply bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-50;
+  @apply text-gray-900 dark:text-gray-50;
+  background: linear-gradient(135deg, rgba(79, 39, 131, 0.75) 0%, rgba(49, 130, 206, 0.75) 100%),
+              url('/bg-characters.jpg') fixed center / cover;
+  position: relative;
 }
