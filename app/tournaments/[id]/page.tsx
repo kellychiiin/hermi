@@ -59,6 +59,13 @@ interface Participant {
     id: string;
     name: string;
     tag: string;
+    rosterMemberships?: Array<{
+      player: {
+        id: string;
+        handle: string;
+        realName: string | null;
+      };
+    }>;
   };
 }
 
@@ -69,6 +76,24 @@ interface StandingEntry {
   wins: number;
   losses: number;
   stageName: string;
+}
+
+function getTournamentWinner(tournament: Tournament): Participant | null {
+  if (tournament.stages.length === 0) return null;
+
+  const lastStage = tournament.stages[tournament.stages.length - 1];
+  if (lastStage.matches.length === 0) return null;
+
+  const lastMatch = lastStage.matches[lastStage.matches.length - 1];
+  if (!lastMatch.winner) return null;
+
+  for (const mp of lastMatch.participants) {
+    if (mp.participant.id === lastMatch.winner) {
+      return mp.participant;
+    }
+  }
+
+  return null;
 }
 
 function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
@@ -254,6 +279,34 @@ export default function TournamentDetailPage() {
                 <p>🏆 {tournament.participants.filter((p) => !p.stageId).length} Teams Registered</p>
               </div>
             </div>
+
+            {tournament.status === 'COMPLETED' && (() => {
+              const winner = getTournamentWinner(tournament);
+              return winner ? (
+                <div>
+                  <h3 className="font-semibold mb-2">Champion</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-2xl font-bold text-yellow-400 mb-1">🏆 {winner.team.name}</p>
+                      <p className="text-indigo-200 text-sm">{winner.team.tag}</p>
+                    </div>
+                    {winner.team.rosterMemberships && winner.team.rosterMemberships.length > 0 && (
+                      <div className="pt-2 border-t border-indigo-400/20">
+                        <p className="text-xs font-semibold text-indigo-300 mb-2">Players:</p>
+                        <div className="space-y-1">
+                          {winner.team.rosterMemberships.map((membership) => (
+                            <p key={membership.player.id} className="text-xs text-indigo-100">
+                              • {membership.player.handle}
+                              {membership.player.realName && ` (${membership.player.realName})`}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {tournament.description && (

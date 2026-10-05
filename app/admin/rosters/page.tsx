@@ -124,6 +124,8 @@ export default function RostersPage() {
   const handleRemove = async (memberId: string) => {
     if (!confirm('Remove player from roster?')) return;
 
+    setSubmitting(true);
+
     try {
       const res = await fetch('/api/roster-memberships', {
         method: 'DELETE',
@@ -139,6 +141,8 @@ export default function RostersPage() {
     } catch (error) {
       console.error('Error removing player:', error);
       alert('Failed to remove player');
+    } finally {
+      setSubmitting(false);
     }
   };
 

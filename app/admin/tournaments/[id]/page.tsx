@@ -130,6 +130,8 @@ export default function EditTournamentPage() {
   const handleAddTeam = async () => {
     if (!tournament || !selectedTeamId) return;
 
+    setSubmitting(true);
+
     try {
       const res = await fetch('/api/participants', {
         method: 'POST',
@@ -151,11 +153,15 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error adding team:', error);
       alert('Failed to add team');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleRemoveTeam = async (participantId: string) => {
     if (!confirm('Remove this team from the tournament?')) return;
+
+    setSubmitting(true);
 
     try {
       const res = await fetch('/api/participants', {
@@ -172,6 +178,8 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error removing team:', error);
       alert('Failed to remove team');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -188,6 +196,8 @@ export default function EditTournamentPage() {
   const handleCreateStage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tournament) return;
+
+    setSubmitting(true);
 
     try {
       const res = await fetch('/api/stages', {
@@ -215,11 +225,15 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error creating stage:', error);
       alert('Failed to create stage');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDeleteStage = async (stageId: string) => {
     if (!confirm('Delete this stage?')) return;
+
+    setSubmitting(true);
 
     try {
       const res = await fetch('/api/stages', {
@@ -236,12 +250,16 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error deleting stage:', error);
       alert('Failed to delete stage');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDeleteTournament = async () => {
     if (!tournament) return;
     if (!confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) return;
+
+    setSubmitting(true);
 
     try {
       const res = await fetch(`/api/tournaments/${tournament.id}`, {
@@ -258,6 +276,7 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error deleting tournament:', error);
       alert('Failed to delete tournament');
+      setSubmitting(false);
     }
   };
 
@@ -284,6 +303,8 @@ export default function EditTournamentPage() {
   };
 
   const handleAddTeamToStage = async (stageId: string, teamId: string) => {
+    setSubmitting(true);
+
     try {
       const res = await fetch('/api/participants', {
         method: 'POST',
@@ -308,11 +329,15 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error adding team to stage:', error);
       alert('Failed to add team to stage');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleRemoveTeamFromStage = async (stageId: string, participantId: string) => {
     if (!confirm('Remove this team from the stage?')) return;
+
+    setSubmitting(true);
 
     try {
       const res = await fetch('/api/participants', {
@@ -332,6 +357,8 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error removing team from stage:', error);
       alert('Failed to remove team from stage');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -373,6 +400,8 @@ export default function EditTournamentPage() {
       );
     }
 
+    setSubmitting(true);
+
     try {
       for (const stageData of stagesToCreate) {
         const res = await fetch('/api/stages', {
@@ -395,6 +424,8 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error auto-generating stages:', error);
       alert('Failed to auto-generate stages');
+    } finally {
+      setSubmitting(false);
     }
   };
 
