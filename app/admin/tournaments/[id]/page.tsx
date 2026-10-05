@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Tournament {
@@ -46,6 +46,7 @@ interface Stage {
 
 export default function EditTournamentPage() {
   const params = useParams();
+  const router = useRouter();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -225,6 +226,28 @@ export default function EditTournamentPage() {
     }
   };
 
+  const handleDeleteTournament = async () => {
+    if (!tournament) return;
+    if (!confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) throw new Error('Failed to delete tournament');
+
+      alert('Tournament deleted successfully');
+      router.push('/admin');
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      alert('Failed to delete tournament');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tournament) return;
@@ -397,13 +420,22 @@ export default function EditTournamentPage() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg transition"
-                >
-                  {submitting ? 'Saving...' : 'Save Changes'}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg transition"
+                  >
+                    {submitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteTournament}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition"
+                  >
+                    Delete Tournament
+                  </button>
+                </div>
               </form>
             )}
 
