@@ -45,6 +45,12 @@ export default function EditTournamentPage() {
   const [showTeamForm, setShowTeamForm] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState('');
 
+  const handleLogout = () => {
+    document.cookie = 'isAuthenticated=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/login');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -296,9 +302,17 @@ export default function EditTournamentPage() {
           <Link href="/" className="text-2xl font-bold text-white">
             Hermi
           </Link>
-          <Link href="/admin" className="text-white hover:text-indigo-200">
-            Back to Admin
-          </Link>
+          <div className="flex gap-4 items-center">
+            <Link href="/admin" className="text-white hover:text-indigo-200">
+              Back to Admin
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </nav>
 

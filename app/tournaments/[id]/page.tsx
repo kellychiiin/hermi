@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 interface Tournament {
@@ -121,8 +121,25 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
 
 export default function TournamentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cookies = document.cookie.split('; ').reduce((acc: Record<string, string>, cookie) => {
+      const [key, value] = cookie.split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+    setUserRole(cookies.userRole || null);
+  }, []);
+
+  const handleLogout = () => {
+    document.cookie = 'isAuthenticated=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/login');
+  };
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -177,13 +194,21 @@ export default function TournamentDetailPage() {
           <Link href="/" className="text-2xl font-bold text-white">
             Hermi
           </Link>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Link href="/tournaments" className="text-white hover:text-indigo-200">
               Tournaments
             </Link>
-            <Link href="/admin" className="text-white hover:text-indigo-200">
-              Admin
-            </Link>
+            {userRole === 'admin' && (
+              <Link href="/admin" className="text-white hover:text-indigo-200">
+                Admin
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </nav>
