@@ -23,27 +23,48 @@ interface Game {
   name: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  tag: string;
+}
+
+interface Participant {
+  id: string;
+  teamId: string;
+  team: Team;
+  seed: number | null;
+}
+
+interface Stage {
+  id: string;
+  name: string | null;
+  order: number;
+  type: string;
+  bestOf: number | null;
+}
+
 export default function EditTournamentPage() {
   const params = useParams();
   const router = useRouter();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [games, setGames] = useState<Game[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'details' | 'stages' | 'teams'>('details');
-  const [stages, setStages] = useState<any[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [selectedTeamSeed, setSelectedTeamSeed] = useState('');
   const [showStageForm, setShowStageForm] = useState(false);
   const [stageFormData, setStageFormData] = useState({
     name: '',
     order: 1,
-    type: 'SINGLE_ELIMINATION',
-    bestOf: 3,
+    type: 'ROUND_ROBIN',
+    bestOf: 1,
   });
-  const [teams, setTeams] = useState<any[]>([]);
-  const [allTeams, setAllTeams] = useState<any[]>([]);
-  const [showTeamForm, setShowTeamForm] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState('');
 
   const handleLogout = () => {
     document.cookie = 'isAuthenticated=; path=/; max-age=0';
@@ -54,31 +75,32 @@ export default function EditTournamentPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tournamentRes, gamesRes, stagesRes, teamsRes, participantsRes] = await Promise.all([
+        const [tournamentRes, gamesRes, teamsRes, stagesRes] = await Promise.all([
           fetch(`/api/tournaments/${params.id}`),
           fetch('/api/games'),
-          fetch(`/api/stages?tournamentId=${params.id}`),
           fetch('/api/teams'),
-          fetch(`/api/participants?tournamentId=${params.id}`),
+          fetch(`/api/stages?tournamentId=${params.id}`),
         ]);
 
         if (!tournamentRes.ok) throw new Error('Tournament not found');
         if (!gamesRes.ok) throw new Error('Failed to load games');
         if (!stagesRes.ok) throw new Error('Failed to load stages');
         if (!teamsRes.ok) throw new Error('Failed to load teams');
-        if (!participantsRes.ok) throw new Error('Failed to load participants');
 
         const tournamentData = await tournamentRes.json();
         const gamesData = await gamesRes.json();
-        const stagesData = await stagesRes.json();
         const teamsData = await teamsRes.json();
-        const participantsData = await participantsRes.json();
+        const stagesData = await stagesRes.json();
 
         setTournament(tournamentData);
         setGames(gamesData);
+        setTeams(teamsData);
+        setParticipants(tournamentData.participants || []);
         setStages(stagesData);
-        setAllTeams(teamsData);
-        setTeams(participantsData || []);
+
+        if (teamsData.length > 0) {
+          setSelectedTeamId(teamsData[0].id);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setError(error instanceof Error ? error.message : 'Failed to load tournament');
@@ -101,6 +123,203 @@ export default function EditTournamentPage() {
     setTournament((prev) =>
       prev ? { ...prev, [name]: value } : null
     );
+  };
+
+  const handleAddTeam = async () => {
+    if (!tournament || !selectedTeamId) return;
+
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          teamId: selectedTeamId,
+          seed: selectedTeamSeed ? parseInt(selectedTeamSeed) : null,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to add team');
+
+      const newParticipant = await res.json();
+      setParticipants((prev) => [...prev, newParticipant]);
+      setSelectedTeamSeed('');
+    } catch (error) {
+      console.error('Error adding team:', error);
+      alert('Failed to add team');
+    }
+  };
+
+  const handleRemoveTeam = async (participantId: string) => {
+    if (!confirm('Remove this team from the tournament?')) return;
+
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: participantId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to remove team');
+
+      setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+    } catch (error) {
+      console.error('Error removing team:', error);
+      alert('Failed to remove team');
+    }
+  };
+
+  const handleStageChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setStageFormData((prev) => ({
+      ...prev,
+      [name]: name === 'order' || name === 'bestOf' ? parseInt(value) : value,
+    }));
+  };
+
+  const handleCreateStage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tournament) return;
+
+    try {
+      const res = await fetch('/api/stages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...stageFormData,
+          tournamentId: tournament.id,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create stage');
+
+      const newStage = await res.json();
+      setStages((prev) => [...prev, newStage]);
+      setStageFormData({
+        name: '',
+        order: stages.length + 1,
+        type: 'ROUND_ROBIN',
+        bestOf: 1,
+      });
+      setShowStageForm(false);
+    } catch (error) {
+      console.error('Error creating stage:', error);
+      alert('Failed to create stage');
+    }
+  };
+
+  const handleDeleteStage = async (stageId: string) => {
+    if (!confirm('Delete this stage?')) return;
+
+    try {
+      const res = await fetch('/api/stages', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: stageId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete stage');
+
+      setStages((prev) => prev.filter((s) => s.id !== stageId));
+    } catch (error) {
+      console.error('Error deleting stage:', error);
+      alert('Failed to delete stage');
+    }
+  };
+
+  const handleDeleteTournament = async () => {
+    if (!tournament) return;
+    if (!confirm('Are you sure you want to delete this tournament? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) throw new Error('Failed to delete tournament');
+
+      alert('Tournament deleted successfully');
+      router.push('/admin');
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      alert('Failed to delete tournament');
+    }
+  };
+
+  const handleAutoGenerateStages = async () => {
+    if (!tournament || participants.length === 0) {
+      alert('Please add teams first');
+      return;
+    }
+
+    if (stages.length > 0) {
+      if (!confirm('This will delete existing stages. Continue?')) return;
+      for (const stage of stages) {
+        await handleDeleteStage(stage.id);
+      }
+    }
+
+    const teamCount = participants.length;
+    const stagesToCreate = [];
+
+    if (teamCount === 3) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Finals', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else if (teamCount === 4) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else if (teamCount <= 8) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'GROUP', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    }
+
+    try {
+      for (const stageData of stagesToCreate) {
+        const res = await fetch('/api/stages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...stageData,
+            tournamentId: tournament.id,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Failed to create stage');
+        const newStage = await res.json();
+        setStages((prev) => [...prev, newStage]);
+      }
+
+      alert(`Auto-generated ${stagesToCreate.length} stages for ${teamCount} teams`);
+    } catch (error) {
+      console.error('Error auto-generating stages:', error);
+      alert('Failed to auto-generate stages');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,146 +346,6 @@ export default function EditTournamentPage() {
       setError('Failed to update tournament. Please try again.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!tournament) return;
-    if (!confirm('Are you sure you want to delete this tournament? This cannot be undone.')) return;
-
-    setSubmitting(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/tournaments', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: tournament.id }),
-      });
-
-      if (!res.ok) throw new Error('Failed to delete tournament');
-
-      alert('Tournament deleted successfully');
-      router.push('/admin');
-    } catch (error) {
-      console.error('Error deleting tournament:', error);
-      setError('Failed to delete tournament. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCreateStage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tournament) return;
-
-    setSubmitting(true);
-
-    try {
-      const res = await fetch('/api/stages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...stageFormData,
-          tournamentId: tournament.id,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to create stage');
-
-      const newStage = await res.json();
-      setStages((prev) => [...prev, newStage]);
-      setStageFormData({
-        name: '',
-        order: 1,
-        type: 'SINGLE_ELIMINATION',
-        bestOf: 3,
-      });
-      setShowStageForm(false);
-    } catch (error) {
-      console.error('Error creating stage:', error);
-      alert('Failed to create stage');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteStage = async (stageId: string) => {
-    if (!confirm('Delete this stage?')) return;
-
-    try {
-      const res = await fetch('/api/stages', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: stageId }),
-      });
-
-      if (!res.ok) throw new Error('Failed to delete stage');
-
-      setStages((prev) => prev.filter((s) => s.id !== stageId));
-    } catch (error) {
-      console.error('Error deleting stage:', error);
-      alert('Failed to delete stage');
-    }
-  };
-
-  const handleAddTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tournament || !selectedTeamId) return;
-
-    setSubmitting(true);
-
-    try {
-      const res = await fetch('/api/participants', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tournamentId: tournament.id,
-          teamId: selectedTeamId,
-          seed: teams.length + 1,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to add team');
-
-      const newTeam = await res.json();
-      setTeams((prev) => [...prev, newTeam]);
-      setSelectedTeamId('');
-      setShowTeamForm(false);
-    } catch (error) {
-      console.error('Error adding team:', error);
-      alert('Failed to add team');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRemoveTeam = async (participantId: string) => {
-    if (!confirm('Remove this team?')) return;
-
-    try {
-      const res = await fetch('/api/participants', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: participantId }),
-      });
-
-      if (!res.ok) throw new Error('Failed to remove team');
-
-      setTeams((prev) => prev.filter((t) => t.id !== participantId));
-    } catch (error) {
-      console.error('Error removing team:', error);
-      alert('Failed to remove team');
     }
   };
 
@@ -367,7 +446,6 @@ export default function EditTournamentPage() {
                     value={tournament.gameId}
                     onChange={handleChange}
                     className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                    style={{ colorScheme: 'dark' }}
                   >
                     {games.map((game) => (
                       <option key={game.id} value={game.id}>
@@ -387,7 +465,6 @@ export default function EditTournamentPage() {
                       value={tournament.tier || ''}
                       onChange={handleChange}
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                      style={{ colorScheme: 'dark' }}
                     >
                       <option value="">Select Tier</option>
                       <option value="Pro">Pro</option>
@@ -405,7 +482,6 @@ export default function EditTournamentPage() {
                       value={tournament.status}
                       onChange={handleChange}
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                      style={{ colorScheme: 'dark' }}
                     >
                       <option value="UPCOMING">Upcoming</option>
                       <option value="ONGOING">Ongoing</option>
@@ -426,7 +502,7 @@ export default function EditTournamentPage() {
                   />
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={submitting}
@@ -436,202 +512,228 @@ export default function EditTournamentPage() {
                   </button>
                   <button
                     type="button"
-                    disabled={submitting}
-                    onClick={handleDelete}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 text-white font-semibold px-6 py-2 rounded-lg transition"
+                    onClick={handleDeleteTournament}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition"
                   >
-                    Delete
+                    Delete Tournament
                   </button>
                 </div>
               </form>
             )}
 
             {activeTab === 'stages' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold">Tournament Stages</h3>
-                  <button
-                    onClick={() => setShowStageForm(!showStageForm)}
-                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg"
-                  >
-                    {showStageForm ? '✕ Cancel' : '+ Add Stage'}
-                  </button>
-                </div>
-
-                {showStageForm && (
-                  <form onSubmit={handleCreateStage} className="bg-indigo-500/20 rounded-lg p-6 mb-6 space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold mb-2">Stage Name</label>
-                      <input
-                        type="text"
-                        value={stageFormData.name}
-                        onChange={(e) =>
-                          setStageFormData((prev) => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                        className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                        placeholder="e.g., Group Stage, Playoffs"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-6">
+                {!showStageForm ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowStageForm(true);
+                        setStageFormData({
+                          name: '',
+                          order: stages.length + 1,
+                          type: 'ROUND_ROBIN',
+                          bestOf: 1,
+                        });
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg"
+                    >
+                      + Add Stage
+                    </button>
+                    <button
+                      onClick={handleAutoGenerateStages}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg"
+                    >
+                      ⚡ Auto-Generate
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreateStage} className="bg-white/5 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold mb-2">Order</label>
+                        <label className="block text-sm font-semibold mb-2">
+                          Stage Name
+                        </label>
                         <input
-                          type="number"
-                          value={stageFormData.order}
-                          onChange={(e) =>
-                            setStageFormData((prev) => ({
-                              ...prev,
-                              order: parseInt(e.target.value),
-                            }))
-                          }
+                          type="text"
+                          name="name"
+                          value={stageFormData.name}
+                          onChange={handleStageChange}
                           className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                          min="1"
+                          placeholder="e.g., Group Stage"
                         />
                       </div>
-
                       <div>
-                        <label className="block text-sm font-semibold mb-2">Type</label>
-                        <select
-                          value={stageFormData.type}
-                          onChange={(e) =>
-                            setStageFormData((prev) => ({
-                              ...prev,
-                              type: e.target.value,
-                            }))
-                          }
+                        <label className="block text-sm font-semibold mb-2">
+                          Order
+                        </label>
+                        <input
+                          type="number"
+                          name="order"
+                          value={stageFormData.order}
+                          onChange={handleStageChange}
+                          min="1"
                           className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                          style={{ colorScheme: 'dark' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold mb-2">
+                          Type
+                        </label>
+                        <select
+                          name="type"
+                          value={stageFormData.type}
+                          onChange={handleStageChange}
+                          className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
                         >
-                          <option value="SINGLE_ELIMINATION">Single Elim</option>
-                          <option value="DOUBLE_ELIMINATION">Double Elim</option>
                           <option value="ROUND_ROBIN">Round Robin</option>
+                          <option value="SINGLE_ELIMINATION">Single Elimination</option>
+                          <option value="DOUBLE_ELIMINATION">Double Elimination</option>
                           <option value="SWISS">Swiss</option>
                           <option value="GROUP">Group</option>
                         </select>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-semibold mb-2">Best Of</label>
+                        <label className="block text-sm font-semibold mb-2">
+                          Best Of
+                        </label>
                         <input
                           type="number"
+                          name="bestOf"
                           value={stageFormData.bestOf}
-                          onChange={(e) =>
-                            setStageFormData((prev) => ({
-                              ...prev,
-                              bestOf: parseInt(e.target.value),
-                            }))
-                          }
-                          className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                          onChange={handleStageChange}
                           min="1"
+                          className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
                         />
                       </div>
                     </div>
-
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg"
-                    >
-                      {submitting ? 'Creating...' : 'Create Stage'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg"
+                      >
+                        Create Stage
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowStageForm(false)}
+                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 )}
 
-                {stages.length === 0 ? (
-                  <p className="text-indigo-200 text-center py-8">No stages yet. Create one to get started!</p>
-                ) : (
-                  <div className="space-y-3">
-                    {stages.map((stage) => (
-                      <div key={stage.id} className="bg-indigo-500/20 rounded-lg p-4 flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">{stage.name || `Stage ${stage.order}`}</h4>
-                          <p className="text-sm text-indigo-200">
-                            {stage.type.replace(/_/g, ' ')} • Order: {stage.order} • Best of {stage.bestOf}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteStage(stage.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                <div>
+                  <h3 className="font-semibold mb-4">Tournament Stages ({stages.length})</h3>
+                  {stages.length === 0 ? (
+                    <p className="text-indigo-200">No stages created yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {stages.map((stage) => (
+                        <div
+                          key={stage.id}
+                          className="bg-white/5 rounded-lg p-4 flex justify-between items-center"
                         >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          <div>
+                            <p className="font-semibold">
+                              {stage.name || `Stage ${stage.order}`}
+                            </p>
+                            <p className="text-sm text-indigo-200">
+                              {stage.type.replace(/_/g, ' ')} • Best of {stage.bestOf || 1}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteStage(stage.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {activeTab === 'teams' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold">Tournament Teams</h3>
-                  <button
-                    onClick={() => setShowTeamForm(!showTeamForm)}
-                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg"
-                  >
-                    {showTeamForm ? '✕ Cancel' : '+ Add Team'}
-                  </button>
-                </div>
-
-                {showTeamForm && (
-                  <form onSubmit={handleAddTeam} className="bg-indigo-500/20 rounded-lg p-6 mb-6 space-y-4">
+              <div className="space-y-6">
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h3 className="font-semibold mb-4">Add Teams to Tournament</h3>
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold mb-2">Select Team *</label>
+                      <label className="block text-sm font-semibold mb-2">
+                        Select Team
+                      </label>
                       <select
                         value={selectedTeamId}
                         onChange={(e) => setSelectedTeamId(e.target.value)}
-                        required
                         className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                        style={{ colorScheme: 'dark' }}
                       >
-                        <option value="">Choose a team</option>
-                        {allTeams
-                          .filter((t) => !teams.some((tm) => tm.teamId === t.id))
-                          .map((team) => (
-                            <option key={team.id} value={team.id}>
-                              {team.name} ({team.tag})
-                            </option>
-                          ))}
+                        {teams.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name} ({team.tag})
+                          </option>
+                        ))}
                       </select>
                     </div>
-
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">
+                        Seed (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        value={selectedTeamSeed}
+                        onChange={(e) => setSelectedTeamSeed(e.target.value)}
+                        className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                        placeholder="e.g., 1, 2, 3..."
+                      />
+                    </div>
                     <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg"
+                      onClick={handleAddTeam}
+                      className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg"
                     >
-                      {submitting ? 'Adding...' : 'Add Team'}
+                      + Add Team
                     </button>
-                  </form>
-                )}
-
-                {teams.length === 0 ? (
-                  <p className="text-indigo-200 text-center py-8">No teams registered yet. Add teams to participate!</p>
-                ) : (
-                  <div className="space-y-3">
-                    {teams.map((team, idx) => (
-                      <div key={team.id} className="bg-indigo-500/20 rounded-lg p-4 flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold">
-                            {idx + 1}. {team.team.name} ({team.team.tag})
-                          </h4>
-                          <p className="text-sm text-indigo-200">Seed: {team.seed || idx + 1}</p>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveTeam(team.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
                   </div>
-                )}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mb-4">
+                    Registered Teams ({participants.length})
+                  </h3>
+                  {participants.length === 0 ? (
+                    <p className="text-indigo-200">No teams registered yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {participants.map((participant) => (
+                        <div
+                          key={participant.id}
+                          className="flex justify-between items-center bg-white/5 rounded-lg p-4"
+                        >
+                          <div>
+                            <p className="font-semibold">
+                              {participant.team.name}
+                            </p>
+                            <p className="text-sm text-indigo-200">
+                              {participant.team.tag}
+                              {participant.seed && ` • Seed ${participant.seed}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveTeam(participant.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

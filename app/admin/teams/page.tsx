@@ -136,7 +136,7 @@ export default function TeamsPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-white">Manage Teams</h1>
-            <p className="text-indigo-100">Add and manage teams for tournaments</p>
+            <p className="text-indigo-100">Create teams globally • Assign to tournaments from tournament edit page</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -144,6 +144,12 @@ export default function TeamsPage() {
           >
             {showForm ? '✕ Cancel' : '+ Add Team'}
           </button>
+        </div>
+
+        <div className="bg-blue-500/20 border border-blue-400/30 backdrop-blur-lg rounded-lg p-6 text-white mb-8">
+          <p className="text-sm">
+            💡 <strong>Workflow:</strong> Create teams here → Go to Admin → Tournaments → Teams tab → Add your team
+          </p>
         </div>
 
         {showForm && (

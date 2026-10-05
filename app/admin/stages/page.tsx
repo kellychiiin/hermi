@@ -18,29 +18,11 @@ interface Stage {
   tournament: Tournament;
 }
 
-const STAGE_TYPES = [
-  'SINGLE_ELIMINATION',
-  'DOUBLE_ELIMINATION',
-  'ROUND_ROBIN',
-  'SWISS',
-  'GROUP',
-];
-
 export default function StagesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    order: 1,
-    type: 'SINGLE_ELIMINATION',
-    bestOf: 3,
-    tournamentId: '',
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,10 +40,6 @@ export default function StagesPage() {
 
         if (tournamentsData.length > 0) {
           setSelectedTournament(tournamentsData[0].id);
-          setFormData((prev) => ({
-            ...prev,
-            tournamentId: tournamentsData[0].id,
-          }));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -73,67 +51,28 @@ export default function StagesPage() {
     fetchData();
   }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'order' || name === 'bestOf' ? parseInt(value) : value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+  const handleGenerateMatches = async (stageId: string) => {
+    if (!confirm('Generate matches for this stage? This will create all matches based on the stage format.')) return;
 
     try {
-      const res = await fetch('/api/stages', {
+      const res = await fetch('/api/matches/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ stageId }),
       });
 
-      if (!res.ok) throw new Error('Failed to create stage');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to generate matches');
+      }
 
-      const newStage = await res.json();
-      setStages((prev) => [...prev, newStage]);
-      setFormData({
-        name: '',
-        order: 1,
-        type: 'SINGLE_ELIMINATION',
-        bestOf: 3,
-        tournamentId: formData.tournamentId,
-      });
-      setShowForm(false);
+      const result = await res.json();
+      alert(`Successfully generated ${result.matchesCreated} matches!`);
     } catch (error) {
-      console.error('Error creating stage:', error);
-      alert('Failed to create stage');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (stageId: string) => {
-    if (!confirm('Are you sure you want to delete this stage?')) return;
-
-    try {
-      const res = await fetch('/api/stages', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: stageId }),
-      });
-
-      if (!res.ok) throw new Error('Failed to delete stage');
-
-      setStages((prev) => prev.filter((s) => s.id !== stageId));
-    } catch (error) {
-      console.error('Error deleting stage:', error);
-      alert('Failed to delete stage');
+      console.error('Error generating matches:', error);
+      alert(`Failed to generate matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -163,119 +102,17 @@ export default function StagesPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white">Manage Stages</h1>
-            <p className="text-indigo-100">Add stages to your tournaments</p>
-          </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg"
-          >
-            {showForm ? '✕ Cancel' : '+ Add Stage'}
-          </button>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white">Tournament Stages</h1>
+          <p className="text-indigo-100">View all stages • Create stages from tournament edit page</p>
         </div>
 
-        {showForm && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white mb-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Tournament *
-                  </label>
-                  <select
-                    name="tournamentId"
-                    value={formData.tournamentId}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  >
-                    {tournaments.map((tournament) => (
-                      <option key={tournament.id} value={tournament.id}>
-                        {tournament.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Stage Name
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                    placeholder="e.g., Group Stage, Playoffs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Order *
-                  </label>
-                  <input
-                    type="number"
-                    name="order"
-                    value={formData.order}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Type *
-                  </label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  >
-                    {STAGE_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type.replace(/_/g, ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Best Of
-                  </label>
-                  <input
-                    type="number"
-                    name="bestOf"
-                    value={formData.bestOf}
-                    onChange={handleChange}
-                    min="1"
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg"
-                >
-                  {submitting ? 'Creating...' : 'Create Stage'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+        <div className="bg-blue-500/20 border border-blue-400/30 backdrop-blur-lg rounded-lg p-6 text-white mb-8">
+          <p className="text-sm">
+            💡 <strong>Tip:</strong> Create stages by going to Admin → Tournaments, select a tournament, and use the <strong>Stages tab</strong>.
+          </p>
+        </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white mb-8">
           <label className="block text-sm font-semibold mb-2">
@@ -320,12 +157,20 @@ export default function StagesPage() {
                       {stage.bestOf && <p>🏆 Best of {stage.bestOf}</p>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(stage.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleGenerateMatches(stage.id)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg"
+                    >
+                      Generate Matches
+                    </button>
+                    <Link
+                      href={`/admin/tournaments/${stage.tournament.id}`}
+                      className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg text-center"
+                    >
+                      Edit Tournament
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}

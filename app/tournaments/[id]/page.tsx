@@ -225,7 +225,7 @@ export default function TournamentDetailPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <h3 className="font-semibold mb-2">Tournament Info</h3>
               <div className="space-y-2 text-sm text-indigo-100">
@@ -299,8 +299,17 @@ export default function TournamentDetailPage() {
                               <p className="text-sm text-indigo-200 mb-2">
                                 {match.status}
                               </p>
-                              {match.winner && (
-                                <p className="text-green-400 font-bold">✓ Complete</p>
+                              {match.winner ? (
+                                <div className="text-green-400 font-bold">
+                                  <p className="text-xs mb-1">✓ Complete</p>
+                                  <p className="text-sm">
+                                    {match.participants.find(
+                                      (p) => p.participant.id === match.winner
+                                    )?.participant.team.tag}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-indigo-300 text-sm">-</p>
                               )}
                             </div>
                           </div>
