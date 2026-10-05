@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Tournament {
@@ -25,6 +25,7 @@ interface Game {
 
 export default function EditTournamentPage() {
   const params = useParams();
+  const router = useRouter();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +92,34 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error updating tournament:', error);
       setError('Failed to update tournament. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tournament) return;
+    if (!confirm('Are you sure you want to delete this tournament? This cannot be undone.')) return;
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/tournaments', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: tournament.id }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete tournament');
+
+      alert('Tournament deleted successfully');
+      router.push('/admin');
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      setError('Failed to delete tournament. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -185,6 +214,7 @@ export default function EditTournamentPage() {
                     value={tournament.gameId}
                     onChange={handleChange}
                     className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                    style={{ colorScheme: 'dark' }}
                   >
                     {games.map((game) => (
                       <option key={game.id} value={game.id}>
@@ -204,6 +234,7 @@ export default function EditTournamentPage() {
                       value={tournament.tier || ''}
                       onChange={handleChange}
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                      style={{ colorScheme: 'dark' }}
                     >
                       <option value="">Select Tier</option>
                       <option value="Pro">Pro</option>
@@ -221,6 +252,7 @@ export default function EditTournamentPage() {
                       value={tournament.status}
                       onChange={handleChange}
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                      style={{ colorScheme: 'dark' }}
                     >
                       <option value="UPCOMING">Upcoming</option>
                       <option value="ONGOING">Ongoing</option>
@@ -241,13 +273,23 @@ export default function EditTournamentPage() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg transition"
-                >
-                  {submitting ? 'Saving...' : 'Save Changes'}
-                </button>
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-500 text-white font-semibold py-2 rounded-lg transition"
+                  >
+                    {submitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={handleDelete}
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 text-white font-semibold px-6 py-2 rounded-lg transition"
+                  >
+                    Delete
+                  </button>
+                </div>
               </form>
             )}
 
