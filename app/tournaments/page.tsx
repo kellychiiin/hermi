@@ -205,47 +205,43 @@ export default function TournamentsPage() {
                   <p className="text-indigo-100">Top players by championship wins</p>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white">
-                  <div className="space-y-4">
-                    {playerChampions.map((champion) => (
-                      <div
-                        key={champion.id}
-                        className="bg-white/5 rounded-lg p-4 flex items-start justify-between hover:bg-white/10 transition"
-                      >
-                        <div className="flex items-start gap-4 flex-1">
-                          {champion.photo && (
-                            <img
-                              src={convertGoogleDriveUrl(champion.photo)}
-                              alt={champion.handle}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold">{champion.handle}</h3>
-                            {champion.realName && (
-                              <p className="text-sm text-indigo-200">{champion.realName}</p>
-                            )}
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {champion.championships.map((champ) => (
-                                <span
-                                  key={champ.gameId}
-                                  className="text-xs bg-indigo-500/30 px-2 py-1 rounded"
-                                >
-                                  {champ.count}x {champ.gameName}
-                                </span>
-                              ))}
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {playerChampions.map((champion) => (
+                    <div
+                      key={champion.id}
+                      className="bg-white/10 backdrop-blur-lg rounded-lg overflow-hidden hover:bg-white/20 transition"
+                    >
+                      {champion.photo && (
+                        <div className="relative w-full h-40 overflow-hidden">
+                          <img
+                            src={convertGoogleDriveUrl(champion.photo)}
+                            alt={champion.handle}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 right-3 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full font-bold text-lg">
+                            {champion.championships.reduce((sum, c) => sum + c.count, 0)}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-yellow-400">
-                            {champion.championships.reduce((sum, c) => sum + c.count, 0)}
-                          </p>
-                          <p className="text-xs text-indigo-300">Titles</p>
+                      )}
+                      <div className="p-6 text-white">
+                        <h3 className="text-xl font-bold mb-1">{champion.handle}</h3>
+                        {champion.realName && (
+                          <p className="text-sm text-indigo-200 mb-4">{champion.realName}</p>
+                        )}
+                        <div className="space-y-2">
+                          {champion.championships.map((champ) => (
+                            <div
+                              key={champ.gameId}
+                              className="flex justify-between items-center bg-white/5 px-3 py-2 rounded"
+                            >
+                              <span className="text-sm">{champ.gameName}</span>
+                              <span className="font-bold text-yellow-400">{champ.count}x</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
