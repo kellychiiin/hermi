@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface Tournament {
@@ -18,20 +18,12 @@ interface Tournament {
   description: string | null;
 }
 
-interface Stage {
-  id: string;
-  name: string | null;
-  type: string;
-  order: number;
-}
-
 interface Game {
   id: string;
   name: string;
 }
 
 export default function EditTournamentPage() {
-  const router = useRouter();
   const params = useParams();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [games, setGames] = useState<Game[]>([]);

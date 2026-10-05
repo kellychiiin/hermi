@@ -13,7 +13,7 @@ export async function GET() {
 
     // If no games exist, create default ones
     if (games.length === 0) {
-      const defaultGames = await prisma.game.createMany({
+      await prisma.game.createMany({
         data: [
           {
             name: 'Dota 2',

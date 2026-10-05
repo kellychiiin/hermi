@@ -194,7 +194,7 @@ export default function TournamentDetailPage() {
                         >
                           <div className="flex justify-between items-center gap-4">
                             <div className="flex-1">
-                              {match.participants.map((mp, idx) => (
+                              {match.participants.map((mp) => (
                                 <div
                                   key={mp.id}
                                   className={`p-2 ${
