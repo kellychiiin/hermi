@@ -110,7 +110,11 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
 
     const teamStats: Record<string, { wins: number; losses: number }> = {};
 
-    for (const participant of tournamentLevelParticipants) {
+    const stageParticipants = stage.participants && stage.participants.length > 0
+      ? stage.participants
+      : tournamentLevelParticipants;
+
+    for (const participant of stageParticipants) {
       teamStats[participant.id] = { wins: 0, losses: 0 };
     }
 
@@ -134,7 +138,7 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
       }
     }
 
-    const standings = tournamentLevelParticipants
+    const standings = stageParticipants
       .filter((p) => stage.matches && stage.matches.some((m) =>
         m.participants && m.participants.some((mp) => mp.participant?.id === p.id)
       ))
