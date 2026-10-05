@@ -60,6 +60,7 @@ export default function MatchesPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [matchStatus, setMatchStatus] = useState('');
   const [matchWinner, setMatchWinner] = useState('');
@@ -102,6 +103,7 @@ export default function MatchesPage() {
 
   const handleUpdateMatch = async (matchId: string) => {
     try {
+      setSubmitting(true);
       const res = await fetch('/api/matches', {
         method: 'PUT',
         headers: {
@@ -124,11 +126,14 @@ export default function MatchesPage() {
     } catch (error) {
       console.error('Error updating match:', error);
       alert('Failed to update match');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleUpdateMapResult = async (mapId: string) => {
     try {
+      setSubmitting(true);
       const res = await fetch('/api/map-results', {
         method: 'PUT',
         headers: {
@@ -155,6 +160,8 @@ export default function MatchesPage() {
     } catch (error) {
       console.error('Error updating map result:', error);
       alert('Failed to update map result');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,6 +180,7 @@ export default function MatchesPage() {
     }
 
     try {
+      setSubmitting(true);
       const winner = quickScoreData.scoreA > quickScoreData.scoreB ? teamA.participant.id : teamB.participant.id;
 
       await fetch('/api/matches', {
@@ -214,6 +222,8 @@ export default function MatchesPage() {
     } catch (error) {
       console.error('Error setting quick score:', error);
       alert('Failed to set match score');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -221,6 +231,7 @@ export default function MatchesPage() {
     if (!confirm('Delete this match? This action cannot be undone.')) return;
 
     try {
+      setSubmitting(true);
       const res = await fetch('/api/matches', {
         method: 'DELETE',
         headers: {
@@ -235,6 +246,8 @@ export default function MatchesPage() {
     } catch (error) {
       console.error('Error deleting match:', error);
       alert('Failed to delete match');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -611,6 +624,17 @@ export default function MatchesPage() {
           </div>
         )}
       </div>
+
+      {submitting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+            <p className="text-white font-semibold">Processing...</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
