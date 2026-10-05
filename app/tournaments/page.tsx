@@ -39,6 +39,30 @@ export default function TournamentsPage() {
     fetchTournaments();
   }, []);
 
+  const handleDelete = async (e: React.MouseEvent, tournamentId: string) => {
+    e.preventDefault();
+    if (!confirm('Are you sure you want to delete this tournament?')) return;
+
+    try {
+      const res = await fetch('/api/tournaments', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: tournamentId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete tournament');
+
+      setTournaments((prev) =>
+        prev.filter((t) => t.id !== tournamentId)
+      );
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      alert('Failed to delete tournament');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center">
@@ -84,9 +108,8 @@ export default function TournamentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tournaments.map((tournament) => (
-              <Link
+              <div
                 key={tournament.id}
-                href={`/tournaments/${tournament.id}`}
                 className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white hover:bg-white/20 transition"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -99,13 +122,28 @@ export default function TournamentsPage() {
                   </span>
                 </div>
 
-                <div className="space-y-2 text-sm text-indigo-100">
+                <div className="space-y-2 text-sm text-indigo-100 mb-4">
                   <p>📅 {format(new Date(tournament.startDate), 'MMM dd, yyyy')}</p>
                   {tournament.location && <p>📍 {tournament.location}</p>}
                   {tournament.prizePool && <p>💰 ${tournament.prizePool.toLocaleString()}</p>}
                   <p>🏆 {tournament.participants.length} teams</p>
                 </div>
-              </Link>
+
+                <div className="flex gap-2 pt-4 border-t border-indigo-400/20">
+                  <Link
+                    href={`/tournaments/${tournament.id}`}
+                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-center font-semibold transition"
+                  >
+                    View
+                  </Link>
+                  <button
+                    onClick={(e) => handleDelete(e, tournament.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
