@@ -242,7 +242,7 @@ export default function TournamentsPage() {
                   {playerChampions.map((champion) => (
                     <div
                       key={champion.id}
-                      className="relative rounded-lg overflow-hidden h-96 group"
+                      className="relative rounded-lg overflow-hidden h-96 group bg-gradient-to-br from-indigo-400 to-purple-600"
                       style={
                         champion.photo
                           ? {
@@ -255,8 +255,14 @@ export default function TournamentsPage() {
                           : {}
                       }
                     >
-                      {champion.photo && (
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                      {!champion.photo && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center text-white/60">
+                            <div className="text-5xl mb-2">🎮</div>
+                            <p>No profile photo</p>
+                          </div>
+                        </div>
                       )}
                       <div className="absolute inset-0 p-6 flex flex-col justify-between text-white">
                         <div className="text-right">
