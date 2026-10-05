@@ -242,35 +242,44 @@ export default function TournamentsPage() {
                   {playerChampions.map((champion) => (
                     <div
                       key={champion.id}
-                      className="bg-white/10 backdrop-blur-lg rounded-lg overflow-hidden hover:bg-white/20 transition"
+                      className="relative rounded-lg overflow-hidden h-96 group"
+                      style={
+                        champion.photo
+                          ? {
+                              backgroundImage: `url(${convertGoogleDriveUrl(
+                                champion.photo
+                              )})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                            }
+                          : {}
+                      }
                     >
                       {champion.photo && (
-                        <div className="relative w-full h-40 overflow-hidden">
-                          <img
-                            src={convertGoogleDriveUrl(champion.photo)}
-                            alt={champion.handle}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute top-3 right-3 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full font-bold text-lg">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                      )}
+                      <div className="absolute inset-0 p-6 flex flex-col justify-between text-white">
+                        <div className="text-right">
+                          <div className="bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full font-bold text-lg inline-block">
                             {champion.championships.reduce((sum, c) => sum + c.count, 0)}
                           </div>
                         </div>
-                      )}
-                      <div className="p-6 text-white">
-                        <h3 className="text-xl font-bold mb-1">{champion.handle}</h3>
-                        {champion.realName && (
-                          <p className="text-sm text-indigo-200 mb-4">{champion.realName}</p>
-                        )}
-                        <div className="space-y-2">
-                          {champion.championships.map((champ) => (
-                            <div
-                              key={champ.gameId}
-                              className="flex justify-between items-center bg-white/5 px-3 py-2 rounded"
-                            >
-                              <span className="text-sm">{champ.gameName}</span>
-                              <span className="font-bold text-yellow-400">{champ.count}x</span>
-                            </div>
-                          ))}
+                        <div>
+                          <h3 className="text-2xl font-bold mb-1">{champion.handle}</h3>
+                          {champion.realName && (
+                            <p className="text-sm text-indigo-200 mb-4">{champion.realName}</p>
+                          )}
+                          <div className="space-y-2">
+                            {champion.championships.map((champ) => (
+                              <div
+                                key={champ.gameId}
+                                className="flex justify-between items-center bg-white/10 backdrop-blur-sm px-3 py-2 rounded"
+                              >
+                                <span className="text-sm">{champ.gameName}</span>
+                                <span className="font-bold text-yellow-400">{champ.count}x</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
