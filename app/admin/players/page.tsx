@@ -8,10 +8,10 @@ interface Player {
   handle: string;
   realName: string | null;
   country: string | null;
-  game: {
+  games?: Array<{
     id: string;
     name: string;
-  };
+  }>;
   rosterMemberships: any[];
 }
 
@@ -23,10 +23,10 @@ interface Game {
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<Game[]>([]);
-  const [selectedGame, setSelectedGame] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedGameId, setSelectedGameId] = useState('');
 
   const [formData, setFormData] = useState({
     handle: '',
@@ -51,7 +51,7 @@ export default function PlayersPage() {
         setPlayers(playersData);
 
         if (gamesData.length > 0) {
-          setSelectedGame(gamesData[0].id);
+          setSelectedGameId(gamesData[0].id);
           setFormData((prev) => ({ ...prev, gameId: gamesData[0].id }));
         }
       } catch (error) {
@@ -99,7 +99,7 @@ export default function PlayersPage() {
         realName: '',
         country: '',
         photo: '',
-        gameId: formData.gameId,
+        gameId: selectedGameId,
       });
       setShowForm(false);
     } catch (error) {
@@ -109,10 +109,6 @@ export default function PlayersPage() {
       setSubmitting(false);
     }
   };
-
-  const filteredPlayers = players.filter((player) =>
-    selectedGame ? player.game.id === selectedGame : true
-  );
 
   if (loading) {
     return (
@@ -245,29 +241,13 @@ export default function PlayersPage() {
           </div>
         )}
 
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white mb-8">
-          <label className="block text-sm font-semibold mb-2">Filter by Game</label>
-          <select
-            value={selectedGame}
-            onChange={(e) => setSelectedGame(e.target.value)}
-            className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-          >
-            <option value="">All Games</option>
-            {games.map((game) => (
-              <option key={game.id} value={game.id}>
-                {game.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {filteredPlayers.length === 0 ? (
+        {players.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-12 text-center text-white">
             <p className="text-indigo-200">No players yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPlayers.map((player) => (
+            {players.map((player) => (
               <div
                 key={player.id}
                 className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white hover:bg-white/20 transition"
@@ -287,7 +267,14 @@ export default function PlayersPage() {
                   </p>
                 )}
                 <div className="space-y-2 text-sm text-indigo-100">
-                  <p>🎮 {player.game.name}</p>
+                  {player.games && player.games.length > 0 && (
+                    <div>
+                      <p className="font-semibold mb-1">Games:</p>
+                      {player.games.map((game) => (
+                        <p key={game.id}>🎮 {game.name}</p>
+                      ))}
+                    </div>
+                  )}
                   {player.country && <p>🌍 {player.country}</p>}
                   <p>👥 {player.rosterMemberships.length} teams</p>
                 </div>
