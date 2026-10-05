@@ -1,0 +1,249 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and roles
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  ORGANIZER
+  EDITOR
+  VIEWER
+}
+
+// Game model (Dota 2, Valorant, etc.)
+model Game {
+  id   String @id @default(cuid())
+  name String @unique // "Dota 2", "Valorant"
+  slug String @unique // "dota2", "valorant"
+  logo String? // URL to game logo
+
+  tournaments Tournament[]
+  teams       Team[]
+  players     Player[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("games")
+}
+
+// Team/Organization model
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  tag       String
+  logo      String?
+  region    String?
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  rosterMemberships RosterMembership[]
+  participants      Participant[]
+
+  @@unique([gameId, tag])
+  @@map("teams")
+}
+
+// Player model
+model Player {
+  id        String   @id @default(cuid())
+  handle    String
+  realName  String?
+  country   String?
+  photo     String?
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  rosterMemberships RosterMembership[]
+
+  @@unique([gameId, handle])
+  @@map("players")
+}
+
+// Roster membership (Player on Team)
+model RosterMembership {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  role      String? // "carry", "support", "IGL", etc.
+  startDate DateTime
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([playerId, teamId, startDate])
+  @@map("roster_memberships")
+}
+
+// Tournament model
+model Tournament {
+  id          String   @id @default(cuid())
+  name        String
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id])
+  organizer   String? // Organizer name or email
+  tier        String? // "Pro", "Semi-Pro", "Amateur", etc.
+  startDate   DateTime
+  endDate     DateTime?
+  location    String? // "Online" or city name
+  prizePool   Int? // In USD or local currency
+  status      TournamentStatus @default(UPCOMING) // UPCOMING, ONGOING, COMPLETED
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  stages       Stage[]
+  participants Participant[]
+
+  @@map("tournaments")
+}
+
+enum TournamentStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+}
+
+// Stage within a tournament (groups, bracket rounds, etc.)
+model Stage {
+  id             String @id @default(cuid())
+  tournamentId   String
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  name           String? // "Group Stage", "Bracket", "Quarters", etc.
+  order          Int // For ordering stages
+  type           StageType // Single/Double elim, Round robin, Swiss
+  bestOf         Int? // Best of N maps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  matches Match[]
+
+  @@map("stages")
+}
+
+enum StageType {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+  SWISS
+  GROUP
+}
+
+// Participant (Team in a tournament/stage)
+model Participant {
+  id          String @id @default(cuid())
+  stageId     String?
+  stage       Stage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  tournamentId String
+  tournament  Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  teamId      String
+  team        Team   @relation(fields: [teamId], references: [id])
+  seed        Int? // Seeding number
+  placement   Int? // Final placement
+  prize       Int? // Prize in USD or local currency
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  matchesAsA MatchParticipant[]
+
+  @@unique([tournamentId, teamId, stageId])
+  @@map("participants")
+}
+
+// Match model (game between two teams)
+model Match {
+  id           String @id @default(cuid())
+  stageId      String
+  stage        Stage  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  round        Int // Round number for bracket visualization
+  position     Int? // Position in bracket (for bracket seeding)
+  bestOf       Int @default(3)
+  scheduledAt  DateTime?
+  status       MatchStatus @default(SCHEDULED)
+  winner       String? // "A" or "B" (participant ID)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  participants MatchParticipant[]
+  mapResults  MapResult[]
+  nextMatch   Match? @relation("bracket_advancement_winner", fields: [nextMatchWinnerId], references: [id])
+  nextMatchWinnerId String?
+  nextMatchLoser Match? @relation("bracket_advancement_loser", fields: [nextMatchLoserId], references: [id])
+  nextMatchLoserId String?
+
+  // Back relations for bracket advancement
+  nextMatchForWinner Match[] @relation("bracket_advancement_winner")
+  nextMatchForLoser Match[] @relation("bracket_advancement_loser")
+
+  @@map("matches")
+}
+
+enum MatchStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+// Match participant (Team in a match)
+model MatchParticipant {
+  id           String @id @default(cuid())
+  matchId      String
+  match        Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  participantId String
+  participant  Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  side         String // "A" or "B" to distinguish sides
+  mapWins      Int @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([matchId, participantId])
+  @@map("match_participants")
+}
+
+// Map result within a match
+model MapResult {
+  id         String @id @default(cuid())
+  matchId    String
+  match      Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  mapName    String? // e.g., "Inferno", "Icefrog", etc.
+  mapOrder   Int // Which map in the best-of series
+  scoreA     Int
+  scoreB     Int
+  winner     String? // "A" or "B"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("map_results")
+}
