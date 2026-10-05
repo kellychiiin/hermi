@@ -54,6 +54,7 @@ interface Participant {
   seed: number | null;
   placement: number | null;
   prize: number | null;
+  stageId: string | null;
   team: {
     id: string;
     name: string;
@@ -72,13 +73,14 @@ interface StandingEntry {
 
 function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
   const standingsByStage: Record<string, StandingEntry[]> = {};
+  const tournamentLevelParticipants = tournament.participants.filter((p) => !p.stageId);
 
   for (const stage of tournament.stages) {
     const stageName = stage.name || `Stage ${stage.order}`;
 
     const teamStats: Record<string, { wins: number; losses: number }> = {};
 
-    for (const participant of tournament.participants) {
+    for (const participant of tournamentLevelParticipants) {
       teamStats[participant.id] = { wins: 0, losses: 0 };
     }
 
@@ -94,7 +96,7 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
       }
     }
 
-    const standings = tournament.participants
+    const standings = tournamentLevelParticipants
       .filter((p) => stage.matches.some((m) =>
         m.participants.some((mp) => mp.participant.id === p.id)
       ))
@@ -243,7 +245,7 @@ export default function TournamentDetailPage() {
             <div>
               <h3 className="font-semibold mb-2">Tournament Info (cont.)</h3>
               <div className="space-y-2 text-sm text-indigo-100">
-                <p>🏆 {tournament.participants.length} Teams Registered</p>
+                <p>🏆 {tournament.participants.filter((p) => !p.stageId).length} Teams Registered</p>
               </div>
             </div>
           </div>
