@@ -31,6 +31,7 @@ interface Stage {
   order: number;
   bestOf: number | null;
   matches: Match[];
+  participants?: Participant[];
 }
 
 interface Match {
