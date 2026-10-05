@@ -59,6 +59,13 @@ interface Participant {
     id: string;
     name: string;
     tag: string;
+    rosterMemberships?: Array<{
+      player: {
+        id: string;
+        handle: string;
+        realName: string | null;
+      };
+    }>;
   };
 }
 
@@ -278,9 +285,24 @@ export default function TournamentDetailPage() {
               return winner ? (
                 <div>
                   <h3 className="font-semibold mb-2">Champion</h3>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-2xl font-bold text-yellow-400 mb-2">🏆 {winner.team.name}</p>
-                    <p className="text-indigo-200">{winner.team.tag}</p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-2xl font-bold text-yellow-400 mb-1">🏆 {winner.team.name}</p>
+                      <p className="text-indigo-200 text-sm">{winner.team.tag}</p>
+                    </div>
+                    {winner.team.rosterMemberships && winner.team.rosterMemberships.length > 0 && (
+                      <div className="pt-2 border-t border-indigo-400/20">
+                        <p className="text-xs font-semibold text-indigo-300 mb-2">Players:</p>
+                        <div className="space-y-1">
+                          {winner.team.rosterMemberships.map((membership) => (
+                            <p key={membership.player.id} className="text-xs text-indigo-100">
+                              • {membership.player.handle}
+                              {membership.player.realName && ` (${membership.player.realName})`}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null;
