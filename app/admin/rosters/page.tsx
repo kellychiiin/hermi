@@ -7,10 +7,14 @@ interface Player {
   id: string;
   handle: string;
   realName: string | null;
-  game: {
+  game?: {
     id: string;
     name: string;
   };
+  games?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 interface Team {
@@ -233,11 +237,14 @@ export default function RostersPage() {
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
                     >
                       <option value="">Select a player</option>
-                      {availablePlayers.map((player) => (
-                        <option key={player.id} value={player.id}>
-                          {player.handle}{player.realName ? ` (${player.realName})` : ''} • {player.game.name}
-                        </option>
-                      ))}
+                      {availablePlayers.map((player) => {
+                        const gameNames = player.games?.map(g => g.name).join(', ') || player.game?.name || 'Unknown';
+                        return (
+                          <option key={player.id} value={player.id}>
+                            {player.handle}{player.realName ? ` (${player.realName})` : ''} • {gameNames}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
