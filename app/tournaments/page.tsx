@@ -122,7 +122,7 @@ export default function TournamentsPage() {
                   <p>📅 {format(new Date(tournament.startDate), 'MMM dd, yyyy')}</p>
                   {tournament.location && <p>📍 {tournament.location}</p>}
                   {tournament.prizePool && <p>💰 ${tournament.prizePool.toLocaleString()}</p>}
-                  <p>🏆 {tournament.participants.length} teams</p>
+                  <p>🏆 {tournament.participants.filter((p: any) => !p.stageId).length} teams</p>
                 </div>
               </Link>
             ))}
