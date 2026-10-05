@@ -71,6 +71,24 @@ interface StandingEntry {
   stageName: string;
 }
 
+function getTournamentWinner(tournament: Tournament): Participant | null {
+  if (tournament.stages.length === 0) return null;
+
+  const lastStage = tournament.stages[tournament.stages.length - 1];
+  if (lastStage.matches.length === 0) return null;
+
+  const lastMatch = lastStage.matches[lastStage.matches.length - 1];
+  if (!lastMatch.winner) return null;
+
+  for (const mp of lastMatch.participants) {
+    if (mp.participant.id === lastMatch.winner) {
+      return mp.participant;
+    }
+  }
+
+  return null;
+}
+
 function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
   const standingsByStage: Record<string, StandingEntry[]> = {};
   const tournamentLevelParticipants = tournament.participants.filter((p) => !p.stageId);
@@ -254,6 +272,19 @@ export default function TournamentDetailPage() {
                 <p>🏆 {tournament.participants.filter((p) => !p.stageId).length} Teams Registered</p>
               </div>
             </div>
+
+            {tournament.status === 'COMPLETED' && (() => {
+              const winner = getTournamentWinner(tournament);
+              return winner ? (
+                <div>
+                  <h3 className="font-semibold mb-2">Champion</h3>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-2xl font-bold text-yellow-400 mb-2">🏆 {winner.team.name}</p>
+                    <p className="text-indigo-200">{winner.team.tag}</p>
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {tournament.description && (
