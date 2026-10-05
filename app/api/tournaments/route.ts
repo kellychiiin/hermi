@@ -59,3 +59,21 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    await prisma.tournament.delete({
+      where: { id: body.id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting tournament:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete tournament' },
+      { status: 500 }
+    );
+  }
+}
