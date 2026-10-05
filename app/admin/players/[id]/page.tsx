@@ -56,6 +56,14 @@ export default function EditPlayerPage() {
     }
   }, [params.id]);
 
+  const convertGoogleDriveUrl = (url: string): string => {
+    const gdriveLinkMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (gdriveLinkMatch) {
+      return `https://drive.google.com/uc?export=view&id=${gdriveLinkMatch[1]}`;
+    }
+    return url;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setPlayer((prev) => prev ? { ...prev, [name]: value } : null);
@@ -219,8 +227,22 @@ export default function EditPlayerPage() {
               value={player.photo || ''}
               onChange={handleChange}
               className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-              placeholder="https://..."
+              placeholder="https://... (Google Drive links supported)"
             />
+            {player.photo && (
+              <div className="mt-4">
+                <p className="text-xs text-indigo-200 mb-2">Preview:</p>
+                <img
+                  src={convertGoogleDriveUrl(player.photo)}
+                  alt="Player preview"
+                  className="max-w-full h-48 object-cover rounded-lg border border-indigo-400/30"
+                  onError={(e) => {
+                    e.currentTarget.alt = 'Image failed to load';
+                    e.currentTarget.className = 'max-w-full h-48 bg-indigo-900/30 rounded-lg border border-indigo-400/30 flex items-center justify-center text-indigo-300';
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-6">
