@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
     const matches = [];
 
     if (stage.type === 'ROUND_ROBIN' || stage.type === 'GROUP') {
-      matches.push(...generateRoundRobin(participants, stageId, stage.bestOf || 1));
+      matches.push(...generateRoundRobin(participants, stage.bestOf || 1));
     } else if (stage.type === 'SINGLE_ELIMINATION') {
-      matches.push(...generateSingleElimination(participants, stageId, stage.bestOf || 3));
+      matches.push(...generateSingleElimination(participants, stage.bestOf || 3));
     } else if (stage.type === 'DOUBLE_ELIMINATION') {
-      matches.push(...generateDoubleElimination(participants, stageId, stage.bestOf || 3));
+      matches.push(...generateDoubleElimination(participants, stage.bestOf || 3));
     } else if (stage.type === 'SWISS') {
-      matches.push(...generateSwissRound(participants, stageId, 1, stage.bestOf || 3));
+      matches.push(...generateSwissRound(participants, 1, stage.bestOf || 3));
     }
 
     const createdMatches = [];
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateRoundRobin(participants: any[], stageId: string, bestOf: number) {
+function generateRoundRobin(participants: any[], bestOf: number) {
   const matches = [];
   let matchCount = 0;
 
@@ -127,7 +127,7 @@ function generateRoundRobin(participants: any[], stageId: string, bestOf: number
   return matches;
 }
 
-function generateSingleElimination(participants: any[], stageId: string, bestOf: number) {
+function generateSingleElimination(participants: any[], bestOf: number) {
   const matches = [];
   const sorted = [...participants].sort((a, b) => (a.seed || 0) - (b.seed || 0));
 
@@ -146,7 +146,7 @@ function generateSingleElimination(participants: any[], stageId: string, bestOf:
   return matches;
 }
 
-function generateDoubleElimination(participants: any[], stageId: string, bestOf: number) {
+function generateDoubleElimination(participants: any[], bestOf: number) {
   const matches = [];
   const sorted = [...participants].sort((a, b) => (a.seed || 0) - (b.seed || 0));
 
@@ -165,7 +165,7 @@ function generateDoubleElimination(participants: any[], stageId: string, bestOf:
   return matches;
 }
 
-function generateSwissRound(participants: any[], stageId: string, roundNum: number, bestOf: number) {
+function generateSwissRound(participants: any[], roundNum: number, bestOf: number) {
   const matches = [];
   const sorted = [...participants].sort((a, b) => (a.seed || 0) - (b.seed || 0));
 
