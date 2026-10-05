@@ -57,6 +57,10 @@ export default function EditTournamentPage() {
         ]);
 
         if (!tournamentRes.ok) throw new Error('Tournament not found');
+        if (!gamesRes.ok) throw new Error('Failed to load games');
+        if (!stagesRes.ok) throw new Error('Failed to load stages');
+        if (!teamsRes.ok) throw new Error('Failed to load teams');
+        if (!participantsRes.ok) throw new Error('Failed to load participants');
 
         const tournamentData = await tournamentRes.json();
         const gamesData = await gamesRes.json();
@@ -68,16 +72,18 @@ export default function EditTournamentPage() {
         setGames(gamesData);
         setStages(stagesData);
         setAllTeams(teamsData);
-        setTeams(participantsData);
+        setTeams(participantsData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
-        setError('Failed to load tournament');
+        setError(error instanceof Error ? error.message : 'Failed to load tournament');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    if (params.id) {
+      fetchData();
+    }
   }, [params.id]);
 
   const handleChange = (

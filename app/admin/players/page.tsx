@@ -87,7 +87,10 @@ export default function PlayersPage() {
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error('Failed to create player');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create player');
+      }
 
       const newPlayer = await res.json();
       setPlayers((prev) => [...prev, newPlayer]);
@@ -101,7 +104,7 @@ export default function PlayersPage() {
       setShowForm(false);
     } catch (error) {
       console.error('Error creating player:', error);
-      alert('Failed to create player');
+      alert(error instanceof Error ? error.message : 'Failed to create player');
     } finally {
       setSubmitting(false);
     }
