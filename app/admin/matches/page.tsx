@@ -65,6 +65,11 @@ export default function MatchesPage() {
   const [matchWinner, setMatchWinner] = useState('');
 
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
+  const [quickScoreMatchId, setQuickScoreMatchId] = useState<string | null>(null);
+  const [quickScoreData, setQuickScoreData] = useState({
+    scoreA: 0,
+    scoreB: 0,
+  });
   const [mapFormData, setMapFormData] = useState({
     scoreA: 0,
     scoreB: 0,
@@ -150,6 +155,65 @@ export default function MatchesPage() {
     } catch (error) {
       console.error('Error updating map result:', error);
       alert('Failed to update map result');
+    }
+  };
+
+  const handleQuickScore = async (matchId: string) => {
+    const match = matches.find((m) => m.id === matchId);
+    if (!match) return;
+
+    const teamA = match.participants.find((p) => p.side === 'A');
+    const teamB = match.participants.find((p) => p.side === 'B');
+    if (!teamA || !teamB) return;
+
+    const totalMaps = quickScoreData.scoreA + quickScoreData.scoreB;
+    if (totalMaps === 0) {
+      alert('Enter at least one map result');
+      return;
+    }
+
+    try {
+      const winner = quickScoreData.scoreA > quickScoreData.scoreB ? teamA.participant.id : teamB.participant.id;
+
+      await fetch('/api/matches', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: matchId,
+          status: 'COMPLETED',
+          winner,
+        }),
+      });
+
+      for (let i = 0; i < totalMaps; i++) {
+        const isTeamAWinner = i < quickScoreData.scoreA;
+        await fetch('/api/map-results', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            matchId,
+            mapName: `Map ${i + 1}`,
+            mapOrder: i + 1,
+            scoreA: isTeamAWinner ? 1 : 0,
+            scoreB: isTeamAWinner ? 0 : 1,
+            winner: isTeamAWinner ? teamA.participant.id : teamB.participant.id,
+          }),
+        });
+      }
+
+      const res = await fetch('/api/matches');
+      const updated = await res.json();
+      setMatches(updated);
+
+      setQuickScoreMatchId(null);
+      setQuickScoreData({ scoreA: 0, scoreB: 0 });
+    } catch (error) {
+      console.error('Error setting quick score:', error);
+      alert('Failed to set match score');
     }
   };
 
@@ -321,6 +385,79 @@ export default function MatchesPage() {
                       className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg mb-6"
                     >
                       Edit Match
+                    </button>
+                  )}
+
+                  {quickScoreMatchId === match.id ? (
+                    <div className="bg-white/5 rounded-lg p-4 mb-6 border border-green-400/30">
+                      <h3 className="font-bold mb-3">🏆 Quick Score (Best of {match.bestOf})</h3>
+                      <p className="text-xs text-indigo-300 mb-4">
+                        Enter the final score for this match (e.g., 2-1 means Team A won 2 maps, Team B won 1)
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-semibold mb-2">
+                            {teamA?.participant.team.tag || 'Team A'} Wins
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={match.bestOf}
+                            value={quickScoreData.scoreA}
+                            onChange={(e) =>
+                              setQuickScoreData((prev) => ({
+                                ...prev,
+                                scoreA: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                            className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400 text-center text-xl font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-2">
+                            {teamB?.participant.team.tag || 'Team B'} Wins
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={match.bestOf}
+                            value={quickScoreData.scoreB}
+                            onChange={(e) =>
+                              setQuickScoreData((prev) => ({
+                                ...prev,
+                                scoreB: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                            className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400 text-center text-xl font-bold"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            handleQuickScore(match.id)
+                          }
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg"
+                        >
+                          Set Score
+                        </button>
+                        <button
+                          onClick={() => setQuickScoreMatchId(null)}
+                          className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setQuickScoreMatchId(match.id);
+                        setQuickScoreData({ scoreA: 0, scoreB: 0 });
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg mb-6"
+                    >
+                      ⚡ Quick Score
                     </button>
                   )}
 

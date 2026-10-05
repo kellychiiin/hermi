@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        participants: {
+          orderBy: { seed: 'asc' },
+        },
       },
     });
 
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const participants = stage.tournament.participants;
+    const participants = stage.participants.length > 0 ? stage.participants : stage.tournament.participants;
 
     if (participants.length < 2) {
       return NextResponse.json(
