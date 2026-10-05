@@ -133,10 +133,11 @@ export default function TeamsPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white">Manage Teams</h1>
-          <p className="text-indigo-100">Create teams globally • Assign to tournaments from tournament edit page</p>
-        </div>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white">Manage Teams</h1>
+            <p className="text-indigo-100">Create teams globally • Assign to tournaments from tournament edit page</p>
+          </div>
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg"
