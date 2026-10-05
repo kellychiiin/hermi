@@ -60,12 +60,29 @@ export default function EditPlayerPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setPlayer((prev) => prev ? { ...prev, photo: base64 } : null);
-    };
-    reader.readAsDataURL(file);
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await res.json();
+      setPlayer((prev) => prev ? { ...prev, photo: data.url } : null);
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      alert(err instanceof Error ? err.message : 'Failed to upload file');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

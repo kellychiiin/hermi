@@ -36,16 +36,33 @@ export default function PlayersPage() {
     gameId: '',
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setFormData((prev) => ({ ...prev, photo: base64 }));
-    };
-    reader.readAsDataURL(file);
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await res.json();
+      setFormData((prev) => ({ ...prev, photo: data.url }));
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      alert(err instanceof Error ? err.message : 'Failed to upload file');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
