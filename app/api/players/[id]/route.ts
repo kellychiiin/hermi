@@ -10,7 +10,11 @@ export async function GET(
     const player = await prisma.player.findUnique({
       where: { id },
       include: {
-        game: true,
+        playerGames: {
+          include: {
+            game: true,
+          },
+        },
         rosterMemberships: {
           include: {
             team: {
@@ -28,7 +32,9 @@ export async function GET(
     }
 
     const gamesSet = new Map<string, { id: string; name: string }>();
-    gamesSet.set(player.game.id, { id: player.game.id, name: player.game.name });
+    player.playerGames.forEach((pg) => {
+      gamesSet.set(pg.game.id, { id: pg.game.id, name: pg.game.name });
+    });
     player.rosterMemberships.forEach((membership) => {
       if (!gamesSet.has(membership.team.game.id)) {
         gamesSet.set(membership.team.game.id, {
@@ -53,6 +59,8 @@ export async function PUT(
   try {
     const body = await request.json();
 
+    const gameIds = Array.isArray(body.gameId) ? body.gameId : body.gameIds ? body.gameIds : (body.gameId ? [body.gameId] : []);
+
     const player = await prisma.player.update({
       where: { id },
       data: {
@@ -60,10 +68,21 @@ export async function PUT(
         realName: body.realName || null,
         country: body.country || null,
         photo: body.photo || null,
-        gameId: body.gameId,
+        ...(gameIds.length > 0 && {
+          playerGames: {
+            deleteMany: {},
+            create: gameIds.map((gameId: string) => ({
+              gameId,
+            })),
+          },
+        }),
       },
       include: {
-        game: true,
+        playerGames: {
+          include: {
+            game: true,
+          },
+        },
         rosterMemberships: {
           include: {
             team: {
@@ -77,7 +96,9 @@ export async function PUT(
     });
 
     const gamesSet = new Map<string, { id: string; name: string }>();
-    gamesSet.set(player.game.id, { id: player.game.id, name: player.game.name });
+    player.playerGames.forEach((pg) => {
+      gamesSet.set(pg.game.id, { id: pg.game.id, name: pg.game.name });
+    });
     player.rosterMemberships.forEach((membership) => {
       if (!gamesSet.has(membership.team.game.id)) {
         gamesSet.set(membership.team.game.id, {

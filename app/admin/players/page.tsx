@@ -33,7 +33,7 @@ export default function PlayersPage() {
     realName: '',
     country: '',
     photo: '',
-    gameId: '',
+    gameIds: [] as string[],
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,11 +78,6 @@ export default function PlayersPage() {
 
         setGames(gamesData);
         setPlayers(playersData);
-
-        if (gamesData.length > 0) {
-          setSelectedGameId(gamesData[0].id);
-          setFormData((prev) => ({ ...prev, gameId: gamesData[0].id }));
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -96,11 +91,21 @@ export default function PlayersPage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const { name, value, type } = e.target as HTMLInputElement & HTMLSelectElement;
+
+    if (type === 'checkbox') {
+      setFormData((prev) => {
+        const gameIds = prev.gameIds.includes(value)
+          ? prev.gameIds.filter((id) => id !== value)
+          : [...prev.gameIds, value];
+        return { ...prev, gameIds };
+      });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,7 +133,7 @@ export default function PlayersPage() {
         realName: '',
         country: '',
         photo: '',
-        gameId: selectedGameId,
+        gameIds: [],
       });
       setShowForm(false);
     } catch (error) {
@@ -208,39 +213,39 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Game *
-                  </label>
-                  <select
-                    name="gameId"
-                    value={formData.gameId}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  >
-                    {games.map((game) => (
-                      <option key={game.id} value={game.id}>
-                        {game.name}
-                      </option>
-                    ))}
-                  </select>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Games *
+                </label>
+                <div className="space-y-2">
+                  {games.map((game) => (
+                    <label key={game.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="gameIds"
+                        value={game.id}
+                        checked={formData.gameIds.includes(game.id)}
+                        onChange={handleChange}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span className="text-white">{game.name}</span>
+                    </label>
+                  ))}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                    placeholder="e.g., USA, CN"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Country
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                  placeholder="e.g., USA, CN"
+                />
               </div>
 
               <div>

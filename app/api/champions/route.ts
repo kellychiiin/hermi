@@ -19,7 +19,11 @@ export async function GET() {
                               include: {
                                 player: {
                                   include: {
-                                    game: true,
+                                    playerGames: {
+                                      include: {
+                                        game: true,
+                                      },
+                                    },
                                   },
                                 },
                               },
@@ -46,7 +50,11 @@ export async function GET() {
                   include: {
                     player: {
                       include: {
-                        game: true,
+                        playerGames: {
+                          include: {
+                            game: true,
+                          },
+                        },
                       },
                     },
                   },
@@ -154,18 +162,21 @@ export async function GET() {
           }
 
           const championData = playerChampionMap.get(key)!;
-          const gameChampionship = championData.championships.find(
-            (c) => c.gameId === player.game.id
-          );
 
-          if (gameChampionship) {
-            gameChampionship.count++;
-          } else {
-            championData.championships.push({
-              gameId: player.game.id,
-              gameName: player.game.name,
-              count: 1,
-            });
+          for (const playerGame of player.playerGames) {
+            const gameChampionship = championData.championships.find(
+              (c) => c.gameId === playerGame.game.id
+            );
+
+            if (gameChampionship) {
+              gameChampionship.count++;
+            } else {
+              championData.championships.push({
+                gameId: playerGame.game.id,
+                gameName: playerGame.game.name,
+                count: 1,
+              });
+            }
           }
         }
       }

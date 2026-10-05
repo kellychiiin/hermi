@@ -38,7 +38,7 @@ model Game {
 
   tournaments Tournament[]
   teams       Team[]
-  players     Player[]
+  playerGames PlayerGame[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,20 +69,32 @@ model Team {
 // Player model
 model Player {
   id        String   @id @default(cuid())
-  handle    String
+  handle    String @unique
   realName  String?
   country   String?
   photo     String?
-  gameId    String
-  game      Game     @relation(fields: [gameId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
+  playerGames       PlayerGame[]
   rosterMemberships RosterMembership[]
 
-  @@unique([gameId, handle])
   @@map("players")
+}
+
+// Many-to-many: Player to Game
+model PlayerGame {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([playerId, gameId])
+  @@map("player_games")
 }
 
 // Roster membership (Player on Team)

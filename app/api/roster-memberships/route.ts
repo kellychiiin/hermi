@@ -10,10 +10,18 @@ export async function GET(request: NextRequest) {
       include: {
         player: {
           include: {
+            playerGames: {
+              include: {
+                game: true,
+              },
+            },
+          },
+        },
+        team: {
+          include: {
             game: true,
           },
         },
-        team: true,
       },
       orderBy: {
         startDate: 'desc',
@@ -45,10 +53,18 @@ export async function POST(request: NextRequest) {
       include: {
         player: {
           include: {
+            playerGames: {
+              include: {
+                game: true,
+              },
+            },
+          },
+        },
+        team: {
+          include: {
             game: true,
           },
         },
-        team: true,
       },
     });
 

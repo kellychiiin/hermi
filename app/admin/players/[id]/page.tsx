@@ -10,7 +10,11 @@ interface Player {
   realName: string | null;
   country: string | null;
   photo: string | null;
-  gameId: string;
+  games?: Array<{
+    id: string;
+    name: string;
+  }>;
+  gameIds?: string[];
 }
 
 interface Game {
@@ -41,7 +45,10 @@ export default function EditPlayerPage() {
         const playerData = await playerRes.json();
         const gamesData = await gamesRes.json();
 
-        setPlayer(playerData);
+        setPlayer({
+          ...playerData,
+          gameIds: playerData.games?.map((g: any) => g.id) || [],
+        });
         setGames(gamesData);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -86,8 +93,20 @@ export default function EditPlayerPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setPlayer((prev) => prev ? { ...prev, [name]: value } : null);
+    const { name, value, type } = e.target as HTMLInputElement & HTMLSelectElement;
+
+    setPlayer((prev) => {
+      if (!prev) return null;
+
+      if (type === 'checkbox') {
+        const gameIds = (prev.gameIds || []).includes(value)
+          ? (prev.gameIds || []).filter((id) => id !== value)
+          : [...(prev.gameIds || []), value];
+        return { ...prev, gameIds };
+      } else {
+        return { ...prev, [name]: value };
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,10 +117,11 @@ export default function EditPlayerPage() {
     setError('');
 
     try {
+      const { games, ...playerData } = player;
       const res = await fetch(`/api/players/${player.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(player),
+        body: JSON.stringify(playerData),
       });
 
       if (!res.ok) throw new Error('Failed to update player');
@@ -208,36 +228,35 @@ export default function EditPlayerPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Game *</label>
-              <select
-                name="gameId"
-                value={player.gameId}
-                onChange={handleChange}
-                required
-                className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                style={{ colorScheme: 'dark' }}
-              >
-                {games.map((game) => (
-                  <option key={game.id} value={game.id}>
-                    {game.name}
-                  </option>
-                ))}
-              </select>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Games *</label>
+            <div className="space-y-2">
+              {games.map((game) => (
+                <label key={game.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="gameIds"
+                    value={game.id}
+                    checked={(player.gameIds || []).includes(game.id)}
+                    onChange={handleChange}
+                    className="w-4 h-4 rounded"
+                  />
+                  <span className="text-white">{game.name}</span>
+                </label>
+              ))}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2">Country</label>
-              <input
-                type="text"
-                name="country"
-                value={player.country || ''}
-                onChange={handleChange}
-                className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                placeholder="e.g., USA, CN"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Country</label>
+            <input
+              type="text"
+              name="country"
+              value={player.country || ''}
+              onChange={handleChange}
+              className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+              placeholder="e.g., USA, CN"
+            />
           </div>
 
           <div>
