@@ -146,6 +146,7 @@ model Stage {
 
   // Relations
   matches Match[]
+  participants Participant[]
 
   @@map("stages")
 }
