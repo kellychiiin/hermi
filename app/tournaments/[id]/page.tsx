@@ -216,8 +216,17 @@ export default function TournamentDetailPage() {
                               <p className="text-sm text-indigo-200 mb-2">
                                 {match.status}
                               </p>
-                              {match.winner && (
-                                <p className="text-green-400 font-bold">✓ Complete</p>
+                              {match.winner ? (
+                                <div className="text-green-400 font-bold">
+                                  <p className="text-xs mb-1">✓ Complete</p>
+                                  <p className="text-sm">
+                                    {match.participants.find(
+                                      (p) => p.participant.id === match.winner
+                                    )?.participant.team.tag}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-indigo-300 text-sm">-</p>
                               )}
                             </div>
                           </div>
