@@ -5,11 +5,12 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const tournament = await prisma.tournament.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         game: true,
         stages: {
@@ -65,13 +66,14 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const body = await request.json();
 
     const tournament = await prisma.tournament.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name,
         organizer: body.organizer,
@@ -97,11 +99,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     await prisma.tournament.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
