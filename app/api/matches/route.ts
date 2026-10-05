@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
           },
         },
         mapResults: true,
-        stage: true,
+        stage: {
+          include: {
+            tournament: true,
+          },
+        },
       },
       orderBy: {
         round: 'asc',
@@ -58,6 +62,11 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        stage: {
+          include: {
+            tournament: true,
+          },
+        },
       },
     });
 
@@ -93,6 +102,11 @@ export async function PUT(request: NextRequest) {
           },
         },
         mapResults: true,
+        stage: {
+          include: {
+            tournament: true,
+          },
+        },
       },
     });
 
