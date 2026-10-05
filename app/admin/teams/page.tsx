@@ -276,7 +276,15 @@ export default function TeamsPage() {
                 key={team.id}
                 className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white hover:bg-white/20 transition"
               >
-                <h3 className="text-xl font-bold mb-2">{team.name}</h3>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-xl font-bold">{team.name}</h3>
+                  <Link
+                    href={`/admin/teams/${team.id}`}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm font-semibold"
+                  >
+                    Edit
+                  </Link>
+                </div>
                 <p className="text-indigo-200 text-sm mb-4">{team.tag}</p>
                 <div className="space-y-2 text-sm text-indigo-100">
                   <p>🎮 {team.game.name}</p>
