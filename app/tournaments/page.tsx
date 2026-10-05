@@ -71,6 +71,14 @@ export default function TournamentsPage() {
     fetchData();
   }, []);
 
+  const convertGoogleDriveUrl = (url: string): string => {
+    if (!url) return '';
+    const gdriveLinkMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/);
+    if (gdriveLinkMatch) {
+      return `https://drive.google.com/uc?export=view&id=${gdriveLinkMatch[1]}`;
+    }
+    return url;
+  };
 
   if (loading) {
     return (
@@ -207,7 +215,7 @@ export default function TournamentsPage() {
                         <div className="flex items-start gap-4 flex-1">
                           {champion.photo && (
                             <img
-                              src={champion.photo}
+                              src={convertGoogleDriveUrl(champion.photo)}
                               alt={champion.handle}
                               className="w-12 h-12 rounded-full object-cover"
                             />
