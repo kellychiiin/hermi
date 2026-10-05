@@ -119,3 +119,21 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    await prisma.match.delete({
+      where: { id: body.id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting match:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete match' },
+      { status: 500 }
+    );
+  }
+}
