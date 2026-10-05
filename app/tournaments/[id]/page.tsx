@@ -61,6 +61,64 @@ interface Participant {
   };
 }
 
+interface StandingEntry {
+  participantId: string;
+  teamName: string;
+  teamTag: string;
+  wins: number;
+  losses: number;
+  stageName: string;
+}
+
+function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
+  const standingsByStage: Record<string, StandingEntry[]> = {};
+
+  for (const stage of tournament.stages) {
+    const stageName = stage.name || `Stage ${stage.order}`;
+
+    const teamStats: Record<string, { wins: number; losses: number }> = {};
+
+    for (const participant of tournament.participants) {
+      teamStats[participant.id] = { wins: 0, losses: 0 };
+    }
+
+    for (const match of stage.matches) {
+      if (match.status === 'COMPLETED' && match.winner) {
+        for (const mp of match.participants) {
+          if (mp.participant.id === match.winner) {
+            teamStats[mp.participant.id].wins++;
+          } else {
+            teamStats[mp.participant.id].losses++;
+          }
+        }
+      }
+    }
+
+    const standings = tournament.participants
+      .filter((p) => stage.matches.some((m) =>
+        m.participants.some((mp) => mp.participant.id === p.id)
+      ))
+      .map((p) => ({
+        participantId: p.id,
+        teamName: p.team.name,
+        teamTag: p.team.tag,
+        wins: teamStats[p.id].wins,
+        losses: teamStats[p.id].losses,
+        stageName,
+      }))
+      .sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return a.losses - b.losses;
+      });
+
+    if (standings.length > 0) {
+      standingsByStage[stageName] = standings;
+    }
+  }
+
+  return standingsByStage;
+}
+
 export default function TournamentDetailPage() {
   const params = useParams();
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -158,7 +216,7 @@ export default function TournamentDetailPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Standings</h3>
+              <h3 className="font-semibold mb-2">Tournament Info (cont.)</h3>
               <div className="space-y-2 text-sm text-indigo-100">
                 <p>🏆 {tournament.participants.length} Teams Registered</p>
               </div>
@@ -229,6 +287,63 @@ export default function TournamentDetailPage() {
                   )}
                 </div>
               ))}
+
+            {(() => {
+              const standingsByStage = calculateStandingsByStage(tournament);
+              const hasStandings = Object.keys(standingsByStage).length > 0;
+
+              if (!hasStandings) return null;
+
+              return (
+                <div className="space-y-8">
+                  <h2 className="text-3xl font-bold text-white">Standings</h2>
+                  {Object.entries(standingsByStage).map(([stageName, standings]) => {
+                    const isFinalsStage = stageName.toLowerCase().includes('final') || stageName.toLowerCase().includes('playoff');
+
+                    return (
+                      <div
+                        key={stageName}
+                        className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white"
+                      >
+                        <h3 className="text-xl font-bold mb-4">{stageName} Standings</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="border-b border-indigo-400/30">
+                              <tr>
+                                <th className="text-left py-2 px-3">#</th>
+                                <th className="text-left py-2 px-3">Team</th>
+                                <th className="text-center py-2 px-3">Record</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-indigo-400/20">
+                              {standings.map((entry, index) => (
+                                <tr key={entry.participantId} className="hover:bg-white/5">
+                                  <td className="py-3 px-3 font-semibold">{index + 1}</td>
+                                  <td className="py-3 px-3">
+                                    <div>
+                                      <p className="font-semibold">{entry.teamName}</p>
+                                      <p className="text-xs text-indigo-300">{entry.teamTag}</p>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3 text-center font-semibold text-indigo-200">
+                                    {entry.wins}-{entry.losses}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {isFinalsStage && (
+                          <p className="text-xs text-indigo-300 mt-3">
+                            💡 Finals results show individual match records and do not count toward group stage standings.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center text-white">
