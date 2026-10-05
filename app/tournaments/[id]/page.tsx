@@ -147,10 +147,16 @@ export default function TournamentDetailPage() {
     const fetchTournament = async () => {
       try {
         const res = await fetch(`/api/tournaments/${params.id}`);
+        if (!res.ok) {
+          console.error('Failed to fetch tournament:', res.status);
+          setTournament(null);
+          return;
+        }
         const data = await res.json();
         setTournament(data);
       } catch (error) {
         console.error('Error fetching tournament:', error);
+        setTournament(null);
       } finally {
         setLoading(false);
       }
