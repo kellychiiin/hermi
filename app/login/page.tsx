@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authenticate } from '@/lib/auth';
+import { loginAsUser, loginAsAdmin } from '@/lib/auth';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<'select' | 'admin'>('select');
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -16,8 +14,7 @@ export default function LoginPage() {
   const handleViewAsUser = async () => {
     try {
       setSubmitting(true);
-      await authenticate('user');
-      router.push('/tournaments');
+      await loginAsUser();
     } catch (err) {
       setError('Failed to authenticate');
       setSubmitting(false);
@@ -30,16 +27,9 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Simple auth check (in production, this should be done server-side)
-      if (adminUsername === 'admin' && adminPassword === 'admin') {
-        await authenticate('admin');
-        router.push('/admin');
-      } else {
-        setError('Invalid username or password');
-        setSubmitting(false);
-      }
+      await loginAsAdmin(adminUsername, adminPassword);
     } catch (err) {
-      setError('Failed to authenticate');
+      setError(err instanceof Error ? err.message : 'Failed to authenticate');
       setSubmitting(false);
     }
   };
