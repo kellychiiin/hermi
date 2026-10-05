@@ -240,9 +240,10 @@ export default function TournamentsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {playerChampions.map((champion) => (
-                    <div
+                    <Link
                       key={champion.id}
-                      className="relative rounded-lg overflow-hidden h-96 group bg-gradient-to-br from-indigo-400 to-purple-600"
+                      href={`/players/${champion.id}`}
+                      className="relative rounded-lg overflow-hidden h-96 group bg-gradient-to-br from-indigo-400 to-purple-600 hover:opacity-90 transition"
                       style={
                         champion.photo
                           ? {
@@ -288,7 +289,7 @@ export default function TournamentsPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
