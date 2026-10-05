@@ -67,7 +67,7 @@ export default function AdminPage() {
           <p className="text-indigo-100">Manage tournaments, teams, and matches</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Link
             href="/admin/tournaments/create"
             className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-green-400/50"
@@ -87,6 +87,17 @@ export default function AdminPage() {
           </Link>
 
           <Link
+            href="/admin/players"
+            className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-purple-400/50"
+          >
+            <div className="text-4xl mb-4">🎮</div>
+            <h2 className="text-xl font-bold mb-2">Manage Players</h2>
+            <p className="text-indigo-100">Add players to games</p>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <Link
             href="/admin/stages"
             className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-yellow-400/50"
           >
@@ -96,12 +107,21 @@ export default function AdminPage() {
           </Link>
 
           <Link
-            href="/admin/players"
-            className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-purple-400/50"
+            href="/admin/rosters"
+            className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-cyan-400/50"
           >
-            <div className="text-4xl mb-4">🎮</div>
-            <h2 className="text-xl font-bold mb-2">Manage Players</h2>
-            <p className="text-indigo-100">Add players and rosters</p>
+            <div className="text-4xl mb-4">📋</div>
+            <h2 className="text-xl font-bold mb-2">Manage Rosters</h2>
+            <p className="text-indigo-100">Add players to teams</p>
+          </Link>
+
+          <Link
+            href="/admin/matches"
+            className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white hover:bg-white/20 transition border-2 border-red-400/50"
+          >
+            <div className="text-4xl mb-4">📊</div>
+            <h2 className="text-xl font-bold mb-2">Match Scoring</h2>
+            <p className="text-indigo-100">Update match results</p>
           </Link>
         </div>
 
