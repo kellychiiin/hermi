@@ -217,6 +217,27 @@ export default function MatchesPage() {
     }
   };
 
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!confirm('Delete this match? This action cannot be undone.')) return;
+
+    try {
+      const res = await fetch('/api/matches', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: matchId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete match');
+
+      setMatches((prev) => prev.filter((m) => m.id !== matchId));
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      alert('Failed to delete match');
+    }
+  };
+
   const filteredMatches = selectedTournament
     ? matches.filter((m) => m.stage.tournament.id === selectedTournament)
     : matches;
@@ -376,16 +397,24 @@ export default function MatchesPage() {
                   )}
 
                   {!isEditing && (
-                    <button
-                      onClick={() => {
-                        setEditingMatchId(match.id);
-                        setMatchStatus(match.status);
-                        setMatchWinner(match.winner || '');
-                      }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg mb-6"
-                    >
-                      Edit Match
-                    </button>
+                    <div className="flex gap-2 mb-6">
+                      <button
+                        onClick={() => {
+                          setEditingMatchId(match.id);
+                          setMatchStatus(match.status);
+                          setMatchWinner(match.winner || '');
+                        }}
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg"
+                      >
+                        Edit Match
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMatch(match.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg"
+                      >
+                        Delete Match
+                      </button>
+                    </div>
                   )}
 
                   {quickScoreMatchId === match.id ? (
