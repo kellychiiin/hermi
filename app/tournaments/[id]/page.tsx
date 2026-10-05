@@ -175,14 +175,21 @@ export default function TournamentDetailPage() {
         if (!res.ok) {
           console.error('Failed to fetch tournament:', res.status);
           setTournament(null);
+          setLoading(false);
           return;
         }
         const data = await res.json();
+        if (!data || !data.id) {
+          console.error('Invalid tournament data:', data);
+          setTournament(null);
+          setLoading(false);
+          return;
+        }
         setTournament(data);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching tournament:', error);
         setTournament(null);
-      } finally {
         setLoading(false);
       }
     };
@@ -250,11 +257,11 @@ export default function TournamentDetailPage() {
         <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-4xl font-bold mb-2">{tournament.name}</h1>
-              <p className="text-indigo-200">{tournament.game.name}</p>
+              <h1 className="text-4xl font-bold mb-2">{tournament.name || 'Tournament'}</h1>
+              <p className="text-indigo-200">{tournament.game?.name || 'Unknown Game'}</p>
             </div>
             <span className="bg-indigo-500 px-4 py-2 rounded-lg text-sm font-semibold">
-              {tournament.status}
+              {tournament.status || 'UNKNOWN'}
             </span>
           </div>
 
@@ -262,7 +269,9 @@ export default function TournamentDetailPage() {
             <div>
               <h3 className="font-semibold mb-2">Tournament Info</h3>
               <div className="space-y-2 text-sm text-indigo-100">
-                <p>📅 Starts: {format(new Date(tournament.startDate), 'MMM dd, yyyy HH:mm')}</p>
+                {tournament.startDate && (
+                  <p>📅 Starts: {format(new Date(tournament.startDate), 'MMM dd, yyyy HH:mm')}</p>
+                )}
                 {tournament.endDate && (
                   <p>📅 Ends: {format(new Date(tournament.endDate), 'MMM dd, yyyy HH:mm')}</p>
                 )}
@@ -276,7 +285,7 @@ export default function TournamentDetailPage() {
             <div>
               <h3 className="font-semibold mb-2">Tournament Info (cont.)</h3>
               <div className="space-y-2 text-sm text-indigo-100">
-                <p>🏆 {tournament.participants.filter((p) => !p.stageId).length} Teams Registered</p>
+                <p>🏆 {tournament.participants?.filter((p) => !p.stageId).length || 0} Teams Registered</p>
               </div>
             </div>
 
@@ -317,10 +326,10 @@ export default function TournamentDetailPage() {
           )}
         </div>
 
-        {tournament.stages.length > 0 ? (
+        {tournament.stages && tournament.stages.length > 0 ? (
           <div className="space-y-8">
             {tournament.stages
-              .sort((a, b) => a.order - b.order)
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
               .map((stage) => (
                 <div
                   key={stage.id}
@@ -348,10 +357,10 @@ export default function TournamentDetailPage() {
                                   }`}
                                 >
                                   <p className="font-semibold">
-                                    {mp.participant.team.name}
+                                    {mp.participant?.team?.name || 'TBD'}
                                   </p>
                                   <p className="text-sm text-indigo-200">
-                                    {mp.participant.team.tag}
+                                    {mp.participant?.team?.tag || '-'}
                                   </p>
                                 </div>
                               ))}
@@ -360,13 +369,13 @@ export default function TournamentDetailPage() {
                               <p className="text-sm text-indigo-200 mb-2">
                                 {match.status}
                               </p>
-                              {match.winner ? (
+                              {match.winner && match.participants ? (
                                 <div className="text-green-400 font-bold">
                                   <p className="text-xs mb-1">✓ Complete</p>
                                   <p className="text-sm">
                                     {match.participants.find(
-                                      (p) => p.participant.id === match.winner
-                                    )?.participant.team.tag}
+                                      (p) => p.participant?.id === match.winner
+                                    )?.participant?.team?.tag || '-'}
                                   </p>
                                 </div>
                               ) : (
