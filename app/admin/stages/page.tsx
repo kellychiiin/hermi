@@ -18,14 +18,6 @@ interface Stage {
   tournament: Tournament;
 }
 
-const STAGE_TYPES = [
-  'SINGLE_ELIMINATION',
-  'DOUBLE_ELIMINATION',
-  'ROUND_ROBIN',
-  'SWISS',
-  'GROUP',
-];
-
 export default function StagesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -48,10 +40,6 @@ export default function StagesPage() {
 
         if (tournamentsData.length > 0) {
           setSelectedTournament(tournamentsData[0].id);
-          setFormData((prev) => ({
-            ...prev,
-            tournamentId: tournamentsData[0].id,
-          }));
         }
       } catch (error) {
         console.error('Error fetching data:', error);
