@@ -147,10 +147,11 @@ export default function RostersPage() {
   };
 
   const selectedTeamData = teams.find((t) => t.id === selectedTeam);
-  const filteredPlayers = players.filter((p) =>
-    selectedTeamData ? p.game.id === selectedTeamData.game.id : true
-  );
   const teamRoster = rosters.filter((r) => r.teamId === selectedTeam);
+
+  const availablePlayers = players.filter((p) =>
+    !teamRoster.some((r) => r.playerId === p.id)
+  );
 
   if (loading) {
     return (
@@ -232,9 +233,9 @@ export default function RostersPage() {
                       className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
                     >
                       <option value="">Select a player</option>
-                      {filteredPlayers.map((player) => (
+                      {availablePlayers.map((player) => (
                         <option key={player.id} value={player.id}>
-                          {player.handle}{player.realName ? ` (${player.realName})` : ''}
+                          {player.handle}{player.realName ? ` (${player.realName})` : ''} • {player.game.name}
                         </option>
                       ))}
                     </select>
