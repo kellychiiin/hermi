@@ -417,6 +417,7 @@ export default function EditTournamentPage() {
       if (!res.ok) throw new Error('Failed to update tournament');
 
       alert('Tournament updated successfully');
+      router.push(`/tournaments/${tournament.id}`);
     } catch (error) {
       console.error('Error updating tournament:', error);
       setError('Failed to update tournament. Please try again.');
