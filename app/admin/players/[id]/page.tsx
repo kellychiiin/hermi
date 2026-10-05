@@ -56,12 +56,16 @@ export default function EditPlayerPage() {
     }
   }, [params.id]);
 
-  const convertGoogleDriveUrl = (url: string): string => {
-    const gdriveLinkMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/);
-    if (gdriveLinkMatch) {
-      return `https://drive.google.com/uc?export=view&id=${gdriveLinkMatch[1]}`;
-    }
-    return url;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setPlayer((prev) => prev ? { ...prev, photo: base64 } : null);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -220,27 +224,41 @@ export default function EditPlayerPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Photo URL</label>
-            <input
-              type="url"
-              name="photo"
-              value={player.photo || ''}
-              onChange={handleChange}
-              className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-              placeholder="https://... (Google Drive links supported)"
-            />
+            <label className="block text-sm font-semibold mb-2">Player Photo</label>
+            <div className="mb-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="block w-full text-sm text-indigo-200
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-indigo-500 file:text-white
+                  hover:file:bg-indigo-600
+                  cursor-pointer"
+              />
+              <p className="text-xs text-indigo-300 mt-2">
+                Upload JPG, PNG, or other image formats
+              </p>
+            </div>
             {player.photo && (
-              <div className="mt-4">
+              <div>
                 <p className="text-xs text-indigo-200 mb-2">Preview:</p>
-                <img
-                  src={convertGoogleDriveUrl(player.photo)}
-                  alt="Player preview"
-                  className="max-w-full h-48 object-cover rounded-lg border border-indigo-400/30"
-                  onError={(e) => {
-                    e.currentTarget.alt = 'Image failed to load';
-                    e.currentTarget.className = 'max-w-full h-48 bg-indigo-900/30 rounded-lg border border-indigo-400/30 flex items-center justify-center text-indigo-300';
-                  }}
-                />
+                <div className="relative">
+                  <img
+                    src={player.photo}
+                    alt="Player preview"
+                    className="max-w-full h-48 object-cover rounded-lg border border-indigo-400/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPlayer((prev) => prev ? { ...prev, photo: null } : null)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-semibold"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             )}
           </div>
