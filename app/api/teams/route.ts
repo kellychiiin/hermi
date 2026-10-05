@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
       },
       include: {
         game: true,
+        rosterMemberships: {
+          include: {
+            player: true,
+          },
+        },
       },
     });
 
