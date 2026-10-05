@@ -36,6 +36,18 @@ export default function PlayersPage() {
     gameId: '',
   });
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setFormData((prev) => ({ ...prev, photo: base64 }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -216,16 +228,29 @@ export default function PlayersPage() {
 
               <div>
                 <label className="block text-sm font-semibold mb-2">
-                  Photo URL
+                  Player Photo
                 </label>
                 <input
-                  type="url"
-                  name="photo"
-                  value={formData.photo}
-                  onChange={handleChange}
-                  className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
-                  placeholder="https://..."
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="block w-full text-sm text-indigo-200
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-indigo-500 file:text-white
+                    hover:file:bg-indigo-600
+                    cursor-pointer"
                 />
+                {formData.photo && (
+                  <div className="mt-2">
+                    <img
+                      src={formData.photo}
+                      alt="Player preview"
+                      className="max-w-full h-24 object-cover rounded-lg border border-indigo-400/30"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">
