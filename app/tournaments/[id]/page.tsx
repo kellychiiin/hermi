@@ -164,6 +164,22 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
   return standingsByStage;
 }
 
+interface PlayerData {
+  id: string;
+  handle: string;
+  realName: string | null;
+  photo: string | null;
+}
+
+function convertGoogleDriveUrl(url: string): string {
+  if (!url) return '';
+  const gdriveLinkMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9-_]+)/);
+  if (gdriveLinkMatch) {
+    return `https://drive.google.com/uc?export=view&id=${gdriveLinkMatch[1]}`;
+  }
+  return url;
+}
+
 export default function TournamentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -343,6 +359,70 @@ export default function TournamentDetailPage() {
             </div>
           )}
         </div>
+
+        {(() => {
+          const playersSet = new Map<string, PlayerData>();
+          if (tournament.participants) {
+            for (const participant of tournament.participants) {
+              if (participant.team?.rosterMemberships) {
+                for (const membership of participant.team.rosterMemberships) {
+                  const player = membership.player;
+                  if (!playersSet.has(player.id)) {
+                    playersSet.set(player.id, {
+                      id: player.id,
+                      handle: player.handle,
+                      realName: player.realName,
+                      photo: player.photo,
+                    });
+                  }
+                }
+              }
+            }
+          }
+
+          const players = Array.from(playersSet.values());
+
+          if (players.length === 0) return null;
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white mb-6">Players in Tournament</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {players.map((player) => (
+                  <div
+                    key={player.id}
+                    className="relative rounded-lg overflow-hidden h-72 group bg-gradient-to-br from-indigo-400 to-purple-600"
+                    style={
+                      player.photo
+                        ? {
+                            backgroundImage: `url(${convertGoogleDriveUrl(player.photo)})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }
+                        : {}
+                    }
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                    {!player.photo && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center text-white/60">
+                          <div className="text-4xl mb-2">🎮</div>
+                          <p className="text-sm">No photo</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 text-white">
+                      <h3 className="text-lg font-bold mb-1">{player.handle}</h3>
+                      {player.realName && (
+                        <p className="text-sm text-indigo-200">{player.realName}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {tournament.stages && tournament.stages.length > 0 ? (
           <div className="space-y-8">
