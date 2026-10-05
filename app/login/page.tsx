@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { authenticate } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,26 +13,33 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleViewAsUser = () => {
-    // Set cookies for authentication
-    document.cookie = 'userRole=user; path=/; max-age=86400'; // 1 day
-    document.cookie = 'isAuthenticated=true; path=/; max-age=86400';
-    router.push('/tournaments');
+  const handleViewAsUser = async () => {
+    try {
+      setSubmitting(true);
+      await authenticate('user');
+      router.push('/tournaments');
+    } catch (err) {
+      setError('Failed to authenticate');
+      setSubmitting(false);
+    }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
 
-    // Simple auth check (in production, this should be done server-side)
-    if (adminUsername === 'admin' && adminPassword === 'admin') {
-      // Set cookies for authentication
-      document.cookie = 'userRole=admin; path=/; max-age=86400'; // 1 day
-      document.cookie = 'isAuthenticated=true; path=/; max-age=86400';
-      router.push('/admin');
-    } else {
-      setError('Invalid username or password');
+    try {
+      // Simple auth check (in production, this should be done server-side)
+      if (adminUsername === 'admin' && adminPassword === 'admin') {
+        await authenticate('admin');
+        router.push('/admin');
+      } else {
+        setError('Invalid username or password');
+        setSubmitting(false);
+      }
+    } catch (err) {
+      setError('Failed to authenticate');
       setSubmitting(false);
     }
   };
