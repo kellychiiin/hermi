@@ -58,8 +58,11 @@ export default function TournamentsPage() {
         ]);
         const tournamentsData = await tournamentsRes.json();
         const championsData = await championsRes.json();
+
         setTournaments(tournamentsData);
-        setPlayerChampions(championsData.playerChampions || []);
+
+        const mergedChampions = mergeChampionsByHandle(championsData.playerChampions || []);
+        setPlayerChampions(mergedChampions);
         setTeamChampions(championsData.teamChampions || []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -70,6 +73,36 @@ export default function TournamentsPage() {
 
     fetchData();
   }, []);
+
+  const mergeChampionsByHandle = (champions: Champion[]): Champion[] => {
+    const championMap = new Map<string, Champion>();
+
+    for (const champion of champions) {
+      const existing = championMap.get(champion.handle);
+
+      if (existing) {
+        // Merge championships from different games
+        for (const champ of champion.championships) {
+          const existingChamp = existing.championships.find(
+            (c) => c.gameId === champ.gameId
+          );
+          if (existingChamp) {
+            existingChamp.count += champ.count;
+          } else {
+            existing.championships.push(champ);
+          }
+        }
+      } else {
+        championMap.set(champion.handle, { ...champion });
+      }
+    }
+
+    return Array.from(championMap.values()).sort((a, b) => {
+      const aTotalChampionships = a.championships.reduce((sum, c) => sum + c.count, 0);
+      const bTotalChampionships = b.championships.reduce((sum, c) => sum + c.count, 0);
+      return bTotalChampionships - aTotalChampionships;
+    });
+  };
 
   const convertGoogleDriveUrl = (url: string): string => {
     if (!url) return '';
