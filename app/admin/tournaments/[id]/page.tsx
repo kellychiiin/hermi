@@ -59,6 +59,8 @@ export default function EditTournamentPage() {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [selectedTeamSeed, setSelectedTeamSeed] = useState('');
   const [showStageForm, setShowStageForm] = useState(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
+  const [stageParticipants, setStageParticipants] = useState<Record<string, Participant[]>>({});
   const [stageFormData, setStageFormData] = useState({
     name: '',
     order: 1,
@@ -256,6 +258,80 @@ export default function EditTournamentPage() {
     } catch (error) {
       console.error('Error deleting tournament:', error);
       alert('Failed to delete tournament');
+    }
+  };
+
+  const toggleStageExpanded = async (stageId: string) => {
+    if (expandedStageId === stageId) {
+      setExpandedStageId(null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/participants?stageId=${stageId}`);
+      if (!res.ok) throw new Error('Failed to load stage participants');
+
+      const stageParticipantsData = await res.json();
+      setStageParticipants((prev) => ({
+        ...prev,
+        [stageId]: stageParticipantsData,
+      }));
+      setExpandedStageId(stageId);
+    } catch (error) {
+      console.error('Error loading stage participants:', error);
+      alert('Failed to load stage participants');
+    }
+  };
+
+  const handleAddTeamToStage = async (stageId: string, teamId: string) => {
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stageId,
+          tournamentId: tournament!.id,
+          teamId,
+          seed: null,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to add team to stage');
+
+      const newParticipant = await res.json();
+      setStageParticipants((prev) => ({
+        ...prev,
+        [stageId]: [...(prev[stageId] || []), newParticipant],
+      }));
+    } catch (error) {
+      console.error('Error adding team to stage:', error);
+      alert('Failed to add team to stage');
+    }
+  };
+
+  const handleRemoveTeamFromStage = async (stageId: string, participantId: string) => {
+    if (!confirm('Remove this team from the stage?')) return;
+
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: participantId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to remove team from stage');
+
+      setStageParticipants((prev) => ({
+        ...prev,
+        [stageId]: (prev[stageId] || []).filter((p) => p.id !== participantId),
+      }));
+    } catch (error) {
+      console.error('Error removing team from stage:', error);
+      alert('Failed to remove team from stage');
     }
   };
 
@@ -635,22 +711,128 @@ export default function EditTournamentPage() {
                       {stages.map((stage) => (
                         <div
                           key={stage.id}
-                          className="bg-white/5 rounded-lg p-4 flex justify-between items-center"
+                          className="bg-white/5 rounded-lg overflow-hidden"
                         >
-                          <div>
-                            <p className="font-semibold">
-                              {stage.name || `Stage ${stage.order}`}
-                            </p>
-                            <p className="text-sm text-indigo-200">
-                              {stage.type.replace(/_/g, ' ')} • Best of {stage.bestOf || 1}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteStage(stage.id)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                          <div className="p-4 flex justify-between items-center cursor-pointer hover:bg-white/10 transition"
+                            onClick={() => toggleStageExpanded(stage.id)}
                           >
-                            Delete
-                          </button>
+                            <div className="flex-1">
+                              <p className="font-semibold">
+                                {stage.name || `Stage ${stage.order}`}
+                              </p>
+                              <p className="text-sm text-indigo-200">
+                                {stage.type.replace(/_/g, ' ')} • Best of {stage.bestOf || 1}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteStage(stage.id);
+                                }}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Delete
+                              </button>
+                              <span className="text-indigo-200">
+                                {expandedStageId === stage.id ? '▼' : '▶'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {expandedStageId === stage.id && (
+                            <div className="border-t border-indigo-400/20 p-4 bg-white/5">
+                              <h4 className="font-semibold mb-3">Manage Participants</h4>
+                              <p className="text-xs text-indigo-300 mb-3">
+                                💡 Leave empty to use all tournament teams. Add specific teams here to override for finals/playoffs.
+                              </p>
+
+                              <div className="mb-4">
+                                <label className="block text-sm font-semibold mb-2">
+                                  Add Team to Stage
+                                </label>
+                                <div className="flex gap-2">
+                                  <select
+                                    id={`stage-team-select-${stage.id}`}
+                                    className="flex-1 bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                                  >
+                                    <option value="">Select a team</option>
+                                    {participants
+                                      .filter(
+                                        (p) =>
+                                          !(
+                                            stageParticipants[stage.id]?.some(
+                                              (sp) => sp.teamId === p.teamId
+                                            ) ||
+                                            stageParticipants[stage.id]?.some(
+                                              (sp) =>
+                                                sp.team?.id === p.team.id
+                                            )
+                                          )
+                                      )
+                                      .map((participant) => (
+                                        <option
+                                          key={participant.id}
+                                          value={participant.teamId}
+                                        >
+                                          {participant.team.name} (
+                                          {participant.team.tag})
+                                        </option>
+                                      ))}
+                                  </select>
+                                  <button
+                                    onClick={() => {
+                                      const select = document.getElementById(
+                                        `stage-team-select-${stage.id}`
+                                      ) as HTMLSelectElement;
+                                      if (select.value) {
+                                        handleAddTeamToStage(stage.id, select.value);
+                                        select.value = '';
+                                      }
+                                    }}
+                                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg"
+                                  >
+                                    Add
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div>
+                                <h5 className="text-sm font-semibold mb-2">
+                                  Stage Teams ({stageParticipants[stage.id]?.length || 0})
+                                </h5>
+                                {!stageParticipants[stage.id] || stageParticipants[stage.id].length === 0 ? (
+                                  <p className="text-sm text-indigo-200">
+                                    No teams assigned. Will use all tournament teams.
+                                  </p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {stageParticipants[stage.id].map((participant) => (
+                                      <div
+                                        key={participant.id}
+                                        className="flex justify-between items-center bg-white/5 rounded p-2"
+                                      >
+                                        <span className="text-sm">
+                                          {participant.team.name} ({participant.team.tag})
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            handleRemoveTeamFromStage(
+                                              stage.id,
+                                              participant.id
+                                            )
+                                          }
+                                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
