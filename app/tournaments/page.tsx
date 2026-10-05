@@ -31,9 +31,22 @@ interface Champion {
   }>;
 }
 
+interface TeamChampion {
+  id: string;
+  name: string;
+  tag: string;
+  gameName: string;
+  gameId: string;
+  logo: string | null;
+  tournamentName: string;
+  tournamentId: string;
+  tournamentEndDate: string;
+}
+
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [champions, setChampions] = useState<Champion[]>([]);
+  const [playerChampions, setPlayerChampions] = useState<Champion[]>([]);
+  const [teamChampions, setTeamChampions] = useState<TeamChampion[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,7 +59,8 @@ export default function TournamentsPage() {
         const tournamentsData = await tournamentsRes.json();
         const championsData = await championsRes.json();
         setTournaments(tournamentsData);
-        setChampions(championsData);
+        setPlayerChampions(championsData.playerChampions || []);
+        setTeamChampions(championsData.teamChampions || []);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -129,55 +143,104 @@ export default function TournamentsPage() {
           </div>
         )}
 
-        {champions.length > 0 && (
-          <div className="mt-16">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">Previous Champions</h2>
-              <p className="text-indigo-100">Top players by championship wins</p>
-            </div>
+        {(teamChampions.length > 0 || playerChampions.length > 0) && (
+          <div className="mt-16 space-y-12">
+            {teamChampions.length > 0 && (
+              <div>
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Team Champions</h2>
+                  <p className="text-indigo-100">Winning teams by tournament</p>
+                </div>
 
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white">
-              <div className="space-y-4">
-                {champions.map((champion) => (
-                  <div
-                    key={champion.id}
-                    className="bg-white/5 rounded-lg p-4 flex items-start justify-between hover:bg-white/10 transition"
-                  >
-                    <div className="flex items-start gap-4 flex-1">
-                      {champion.photo && (
-                        <img
-                          src={champion.photo}
-                          alt={champion.handle}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold">{champion.handle}</h3>
-                        {champion.realName && (
-                          <p className="text-sm text-indigo-200">{champion.realName}</p>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {champion.championships.map((champ) => (
-                            <span
-                              key={champ.gameId}
-                              className="text-xs bg-indigo-500/30 px-2 py-1 rounded"
-                            >
-                              {champ.count}x {champ.gameName}
-                            </span>
-                          ))}
+                <div className="space-y-4">
+                  {teamChampions.map((team) => (
+                    <div
+                      key={`${team.tournamentId}-${team.id}`}
+                      className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white hover:bg-white/20 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          {team.logo && (
+                            <img
+                              src={team.logo}
+                              alt={team.name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold">{team.name}</h3>
+                            <p className="text-sm text-indigo-200">{team.tag}</p>
+                            <p className="text-sm text-indigo-300 mt-2">
+                              🏆 {team.tournamentName}
+                            </p>
+                            <p className="text-xs text-indigo-400 mt-1">
+                              🎮 {team.gameName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="bg-yellow-500/20 border border-yellow-400/30 text-yellow-300 px-3 py-1 rounded-full text-sm font-semibold">
+                            Champion
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-yellow-400">
-                        {champion.championships.reduce((sum, c) => sum + c.count, 0)}
-                      </p>
-                      <p className="text-xs text-indigo-300">Titles</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {playerChampions.length > 0 && (
+              <div>
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Player Champions</h2>
+                  <p className="text-indigo-100">Top players by championship wins</p>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white">
+                  <div className="space-y-4">
+                    {playerChampions.map((champion) => (
+                      <div
+                        key={champion.id}
+                        className="bg-white/5 rounded-lg p-4 flex items-start justify-between hover:bg-white/10 transition"
+                      >
+                        <div className="flex items-start gap-4 flex-1">
+                          {champion.photo && (
+                            <img
+                              src={champion.photo}
+                              alt={champion.handle}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold">{champion.handle}</h3>
+                            {champion.realName && (
+                              <p className="text-sm text-indigo-200">{champion.realName}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {champion.championships.map((champ) => (
+                                <span
+                                  key={champ.gameId}
+                                  className="text-xs bg-indigo-500/30 px-2 py-1 rounded"
+                                >
+                                  {champ.count}x {champ.gameName}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-yellow-400">
+                            {champion.championships.reduce((sum, c) => sum + c.count, 0)}
+                          </p>
+                          <p className="text-xs text-indigo-300">Titles</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

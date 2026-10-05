@@ -29,9 +29,12 @@ export async function GET() {
         },
         game: true,
       },
+      orderBy: {
+        endDate: 'desc',
+      },
     });
 
-    const championMap = new Map<
+    const playerChampionMap = new Map<
       string,
       {
         id: string;
@@ -46,14 +49,40 @@ export async function GET() {
       }
     >();
 
+    const teamChampionsList: Array<{
+      id: string;
+      name: string;
+      tag: string;
+      gameName: string;
+      gameId: string;
+      logo: string | null;
+      tournamentName: string;
+      tournamentId: string;
+      tournamentEndDate: Date;
+    }> = [];
+
     for (const tournament of completedTournaments) {
       for (const participant of tournament.participants) {
+        // Add team champion
+        teamChampionsList.push({
+          id: participant.team.id,
+          name: participant.team.name,
+          tag: participant.team.tag,
+          gameName: tournament.game.name,
+          gameId: tournament.game.id,
+          logo: participant.team.logo,
+          tournamentName: tournament.name,
+          tournamentId: tournament.id,
+          tournamentEndDate: tournament.endDate || tournament.startDate,
+        });
+
+        // Add player champions
         for (const membership of participant.team.rosterMemberships) {
           const player = membership.player;
           const key = player.id;
 
-          if (!championMap.has(key)) {
-            championMap.set(key, {
+          if (!playerChampionMap.has(key)) {
+            playerChampionMap.set(key, {
               id: player.id,
               handle: player.handle,
               realName: player.realName,
@@ -62,7 +91,7 @@ export async function GET() {
             });
           }
 
-          const championData = championMap.get(key)!;
+          const championData = playerChampionMap.get(key)!;
           const gameChampionship = championData.championships.find(
             (c) => c.gameId === player.game.id
           );
@@ -80,13 +109,13 @@ export async function GET() {
       }
     }
 
-    const champions = Array.from(championMap.values()).sort((a, b) => {
+    const playerChampions = Array.from(playerChampionMap.values()).sort((a, b) => {
       const aTotalChampionships = a.championships.reduce((sum, c) => sum + c.count, 0);
       const bTotalChampionships = b.championships.reduce((sum, c) => sum + c.count, 0);
       return bTotalChampionships - aTotalChampionships;
     });
 
-    return Response.json(champions);
+    return Response.json({ playerChampions, teamChampions: teamChampionsList });
   } catch (error) {
     console.error('Error fetching champions:', error);
     return Response.json({ error: 'Failed to fetch champions' }, { status: 500 });
