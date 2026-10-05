@@ -248,6 +248,69 @@ export default function EditTournamentPage() {
     }
   };
 
+  const handleAutoGenerateStages = async () => {
+    if (!tournament || participants.length === 0) {
+      alert('Please add teams first');
+      return;
+    }
+
+    if (stages.length > 0) {
+      if (!confirm('This will delete existing stages. Continue?')) return;
+      for (const stage of stages) {
+        await handleDeleteStage(stage.id);
+      }
+    }
+
+    const teamCount = participants.length;
+    const stagesToCreate = [];
+
+    if (teamCount === 3) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Finals', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else if (teamCount === 4) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else if (teamCount <= 8) {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'ROUND_ROBIN', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    } else {
+      stagesToCreate.push(
+        { name: 'Group Stage', order: 1, type: 'GROUP', bestOf: 1 },
+        { name: 'Playoffs', order: 2, type: 'SINGLE_ELIMINATION', bestOf: 3 }
+      );
+    }
+
+    try {
+      for (const stageData of stagesToCreate) {
+        const res = await fetch('/api/stages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...stageData,
+            tournamentId: tournament.id,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Failed to create stage');
+        const newStage = await res.json();
+        setStages((prev) => [...prev, newStage]);
+      }
+
+      alert(`Auto-generated ${stagesToCreate.length} stages for ${teamCount} teams`);
+    } catch (error) {
+      console.error('Error auto-generating stages:', error);
+      alert('Failed to auto-generate stages');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tournament) return;
@@ -442,20 +505,28 @@ export default function EditTournamentPage() {
             {activeTab === 'stages' && (
               <div className="space-y-6">
                 {!showStageForm ? (
-                  <button
-                    onClick={() => {
-                      setShowStageForm(true);
-                      setStageFormData({
-                        name: '',
-                        order: stages.length + 1,
-                        type: 'ROUND_ROBIN',
-                        bestOf: 1,
-                      });
-                    }}
-                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg"
-                  >
-                    + Add Stage
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowStageForm(true);
+                        setStageFormData({
+                          name: '',
+                          order: stages.length + 1,
+                          type: 'ROUND_ROBIN',
+                          bestOf: 1,
+                        });
+                      }}
+                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg"
+                    >
+                      + Add Stage
+                    </button>
+                    <button
+                      onClick={handleAutoGenerateStages}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg"
+                    >
+                      ⚡ Auto-Generate
+                    </button>
+                  </div>
                 ) : (
                   <form onSubmit={handleCreateStage} className="bg-white/5 rounded-lg p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-4">
