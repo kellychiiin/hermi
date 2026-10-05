@@ -19,7 +19,18 @@ export async function GET(
                   include: {
                     participant: {
                       include: {
-                        team: true,
+                        team: {
+                          include: {
+                            rosterMemberships: {
+                              include: {
+                                player: true,
+                              },
+                              where: {
+                                endDate: null,
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
