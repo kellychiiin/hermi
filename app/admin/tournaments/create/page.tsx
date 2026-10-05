@@ -76,14 +76,18 @@ export default function CreateTournamentPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to create tournament');
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create tournament');
       }
 
       const tournament = await res.json();
+      if (!tournament.id) {
+        throw new Error('Tournament created but no ID returned');
+      }
       router.push(`/admin/tournaments/${tournament.id}`);
     } catch (error) {
       console.error('Error creating tournament:', error);
-      setError('Failed to create tournament. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to create tournament. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 interface Tournament {
@@ -16,8 +17,15 @@ interface Tournament {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = () => {
+    document.cookie = 'isAuthenticated=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/login');
+  };
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -50,13 +58,19 @@ export default function AdminPage() {
           <Link href="/" className="text-2xl font-bold text-white">
             Hermi
           </Link>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Link href="/tournaments" className="text-white hover:text-indigo-200">
               Tournaments
             </Link>
             <Link href="/admin" className="text-white hover:text-indigo-200 font-semibold">
               Admin
             </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </nav>

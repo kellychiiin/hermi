@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
 interface Tournament {
@@ -61,50 +61,84 @@ interface Participant {
   };
 }
 
+interface StandingEntry {
+  participantId: string;
+  teamName: string;
+  teamTag: string;
+  wins: number;
+  losses: number;
+  stageName: string;
+}
+
+function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
+  const standingsByStage: Record<string, StandingEntry[]> = {};
+
+  for (const stage of tournament.stages) {
+    const stageName = stage.name || `Stage ${stage.order}`;
+
+    const teamStats: Record<string, { wins: number; losses: number }> = {};
+
+    for (const participant of tournament.participants) {
+      teamStats[participant.id] = { wins: 0, losses: 0 };
+    }
+
+    for (const match of stage.matches) {
+      if (match.status === 'COMPLETED' && match.winner) {
+        for (const mp of match.participants) {
+          if (mp.participant.id === match.winner) {
+            teamStats[mp.participant.id].wins++;
+          } else {
+            teamStats[mp.participant.id].losses++;
+          }
+        }
+      }
+    }
+
+    const standings = tournament.participants
+      .filter((p) => stage.matches.some((m) =>
+        m.participants.some((mp) => mp.participant.id === p.id)
+      ))
+      .map((p) => ({
+        participantId: p.id,
+        teamName: p.team.name,
+        teamTag: p.team.tag,
+        wins: teamStats[p.id].wins,
+        losses: teamStats[p.id].losses,
+        stageName,
+      }))
+      .sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        return a.losses - b.losses;
+      });
+
+    if (standings.length > 0) {
+      standingsByStage[stageName] = standings;
+    }
+  }
+
+  return standingsByStage;
+}
+
 export default function TournamentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  const calculateStandings = (tournament: Tournament) => {
-    const standings: {
-      participantId: string;
-      teamName: string;
-      teamTag: string;
-      wins: number;
-      losses: number;
-    }[] = [];
+  useEffect(() => {
+    const cookies = document.cookie.split('; ').reduce((acc: Record<string, string>, cookie) => {
+      const [key, value] = cookie.split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+    setUserRole(cookies.userRole || null);
+  }, []);
 
-    tournament.participants.forEach((participant) => {
-      standings.push({
-        participantId: participant.id,
-        teamName: participant.team.name,
-        teamTag: participant.team.tag,
-        wins: 0,
-        losses: 0,
-      });
-    });
-
-    tournament.stages.forEach((stage) => {
-      stage.matches.forEach((match) => {
-        if (match.winner) {
-          match.participants.forEach((mp) => {
-            const standingEntry = standings.find(
-              (s) => s.participantId === mp.participant.id
-            );
-            if (standingEntry) {
-              if (mp.participant.id === match.winner) {
-                standingEntry.wins++;
-              } else {
-                standingEntry.losses++;
-              }
-            }
-          });
-        }
-      });
-    });
-
-    return standings.sort((a, b) => b.wins - a.wins);
+  const handleLogout = () => {
+    document.cookie = 'isAuthenticated=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/login');
   };
 
   useEffect(() => {
@@ -160,13 +194,21 @@ export default function TournamentDetailPage() {
           <Link href="/" className="text-2xl font-bold text-white">
             Hermi
           </Link>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Link href="/tournaments" className="text-white hover:text-indigo-200">
               Tournaments
             </Link>
-            <Link href="/admin" className="text-white hover:text-indigo-200">
-              Admin
-            </Link>
+            {userRole === 'admin' && (
+              <Link href="/admin" className="text-white hover:text-indigo-200">
+                Admin
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </nav>
@@ -198,38 +240,10 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            <div className="md:col-span-2">
-              <h3 className="font-semibold mb-4">Standings</h3>
-              <div className="bg-white/5 rounded-lg overflow-hidden">
-                <div className="space-y-2">
-                  {calculateStandings(tournament).length > 0 ? (
-                    calculateStandings(tournament).map((standing, index) => (
-                      <div
-                        key={standing.participantId}
-                        className="flex items-center justify-between p-3 hover:bg-white/10 transition"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <span className="font-bold text-lg w-8 text-indigo-300">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <p className="font-semibold">{standing.teamName}</p>
-                            <p className="text-xs text-indigo-300">
-                              {standing.teamTag}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right text-sm">
-                          <p className="font-semibold">
-                            {standing.wins}-{standing.losses}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-indigo-200 p-3">No completed matches yet</p>
-                  )}
-                </div>
+            <div>
+              <h3 className="font-semibold mb-2">Tournament Info (cont.)</h3>
+              <div className="space-y-2 text-sm text-indigo-100">
+                <p>🏆 {tournament.participants.length} Teams Registered</p>
               </div>
             </div>
           </div>
@@ -307,6 +321,63 @@ export default function TournamentDetailPage() {
                   )}
                 </div>
               ))}
+
+            {(() => {
+              const standingsByStage = calculateStandingsByStage(tournament);
+              const hasStandings = Object.keys(standingsByStage).length > 0;
+
+              if (!hasStandings) return null;
+
+              return (
+                <div className="space-y-8">
+                  <h2 className="text-3xl font-bold text-white">Standings</h2>
+                  {Object.entries(standingsByStage).map(([stageName, standings]) => {
+                    const isFinalsStage = stageName.toLowerCase().includes('final') || stageName.toLowerCase().includes('playoff');
+
+                    return (
+                      <div
+                        key={stageName}
+                        className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white"
+                      >
+                        <h3 className="text-xl font-bold mb-4">{stageName} Standings</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="border-b border-indigo-400/30">
+                              <tr>
+                                <th className="text-left py-2 px-3">#</th>
+                                <th className="text-left py-2 px-3">Team</th>
+                                <th className="text-center py-2 px-3">Record</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-indigo-400/20">
+                              {standings.map((entry, index) => (
+                                <tr key={entry.participantId} className="hover:bg-white/5">
+                                  <td className="py-3 px-3 font-semibold">{index + 1}</td>
+                                  <td className="py-3 px-3">
+                                    <div>
+                                      <p className="font-semibold">{entry.teamName}</p>
+                                      <p className="text-xs text-indigo-300">{entry.teamTag}</p>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3 text-center font-semibold text-indigo-200">
+                                    {entry.wins}-{entry.losses}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {isFinalsStage && (
+                          <p className="text-xs text-indigo-300 mt-3">
+                            💡 Finals results show individual match records and do not count toward group stage standings.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center text-white">
