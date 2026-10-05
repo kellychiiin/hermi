@@ -137,6 +137,31 @@ export default function StagesPage() {
     }
   };
 
+  const handleGenerateMatches = async (stageId: string) => {
+    if (!confirm('Generate matches for this stage? This will create all matches based on the stage format.')) return;
+
+    try {
+      const res = await fetch('/api/matches/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stageId }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to generate matches');
+      }
+
+      const result = await res.json();
+      alert(`Successfully generated ${result.matchesCreated} matches!`);
+    } catch (error) {
+      console.error('Error generating matches:', error);
+      alert(`Failed to generate matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const filteredStages = stages.filter((stage) =>
     selectedTournament ? stage.tournamentId === selectedTournament : true
   );
@@ -320,12 +345,20 @@ export default function StagesPage() {
                       {stage.bestOf && <p>🏆 Best of {stage.bestOf}</p>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDelete(stage.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleGenerateMatches(stage.id)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg"
+                    >
+                      Generate Matches
+                    </button>
+                    <button
+                      onClick={() => handleDelete(stage.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

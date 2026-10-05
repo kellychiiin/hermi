@@ -31,11 +31,17 @@ interface Match {
   stage: {
     id: string;
     name: string | null;
+    type: string;
     tournament: {
       id: string;
       name: string;
     };
   };
+}
+
+interface Tournament {
+  id: string;
+  name: string;
 }
 
 interface MapResult {
@@ -51,6 +57,8 @@ const MATCH_STATUSES = ['SCHEDULED', 'ONGOING', 'COMPLETED', 'CANCELLED'];
 
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [matchStatus, setMatchStatus] = useState('');
@@ -64,19 +72,27 @@ export default function MatchesPage() {
   });
 
   useEffect(() => {
-    const fetchMatches = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/matches');
-        const data = await res.json();
-        setMatches(data);
+        const [matchesRes, tournamentsRes] = await Promise.all([
+          fetch('/api/matches'),
+          fetch('/api/tournaments'),
+        ]);
+        const matchesData = await matchesRes.json();
+        const tournamentsData = await tournamentsRes.json();
+        setMatches(matchesData);
+        setTournaments(tournamentsData);
+        if (tournamentsData.length > 0) {
+          setSelectedTournament(tournamentsData[0].id);
+        }
       } catch (error) {
-        console.error('Error fetching matches:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMatches();
+    fetchData();
   }, []);
 
   const handleUpdateMatch = async (matchId: string) => {
@@ -137,6 +153,10 @@ export default function MatchesPage() {
     }
   };
 
+  const filteredMatches = selectedTournament
+    ? matches.filter((m) => m.stage.tournament.id === selectedTournament)
+    : matches;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center">
@@ -164,13 +184,31 @@ export default function MatchesPage() {
           <p className="text-indigo-100">Update match results and scores</p>
         </div>
 
-        {matches.length === 0 ? (
+        <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 text-white mb-8">
+          <label className="block text-sm font-semibold mb-2">
+            Filter by Tournament
+          </label>
+          <select
+            value={selectedTournament}
+            onChange={(e) => setSelectedTournament(e.target.value)}
+            className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+          >
+            <option value="">All Tournaments</option>
+            {tournaments.map((tournament) => (
+              <option key={tournament.id} value={tournament.id}>
+                {tournament.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {filteredMatches.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg rounded-lg p-12 text-center text-white">
             <p className="text-indigo-200">No matches yet</p>
           </div>
         ) : (
           <div className="space-y-6">
-            {matches.map((match) => {
+            {filteredMatches.map((match) => {
               const teamA = match.participants.find((p) => p.side === 'A');
               const teamB = match.participants.find((p) => p.side === 'B');
               const isEditing = editingMatchId === match.id;
