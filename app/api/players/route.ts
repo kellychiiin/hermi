@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const gameId = request.nextUrl.searchParams.get('gameId');
-
     const players = await prisma.player.findMany({
-      where: gameId ? { gameId } : undefined,
       include: {
         game: true,
         rosterMemberships: {
           include: {
-            team: true,
+            team: {
+              include: {
+                game: true,
+              },
+            },
           },
         },
       },
@@ -20,7 +21,27 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(players);
+    const playersWithGames = players.map((player) => {
+      const gamesSet = new Map<string, { id: string; name: string }>();
+
+      gamesSet.set(player.game.id, { id: player.game.id, name: player.game.name });
+
+      player.rosterMemberships.forEach((membership) => {
+        if (!gamesSet.has(membership.team.game.id)) {
+          gamesSet.set(membership.team.game.id, {
+            id: membership.team.game.id,
+            name: membership.team.game.name,
+          });
+        }
+      });
+
+      return {
+        ...player,
+        games: Array.from(gamesSet.values()),
+      };
+    });
+
+    return NextResponse.json(playersWithGames);
   } catch (error) {
     console.error('Error fetching players:', error);
     return NextResponse.json(
@@ -46,13 +67,31 @@ export async function POST(request: NextRequest) {
         game: true,
         rosterMemberships: {
           include: {
-            team: true,
+            team: {
+              include: {
+                game: true,
+              },
+            },
           },
         },
       },
     });
 
-    return NextResponse.json(player, { status: 201 });
+    const gamesSet = new Map<string, { id: string; name: string }>();
+    gamesSet.set(player.game.id, { id: player.game.id, name: player.game.name });
+    player.rosterMemberships.forEach((membership) => {
+      if (!gamesSet.has(membership.team.game.id)) {
+        gamesSet.set(membership.team.game.id, {
+          id: membership.team.game.id,
+          name: membership.team.game.name,
+        });
+      }
+    });
+
+    return NextResponse.json(
+      { ...player, games: Array.from(gamesSet.values()) },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating player:', error);
     return NextResponse.json(
