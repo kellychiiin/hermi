@@ -66,6 +66,47 @@ export default function TournamentDetailPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const calculateStandings = (tournament: Tournament) => {
+    const standings: {
+      participantId: string;
+      teamName: string;
+      teamTag: string;
+      wins: number;
+      losses: number;
+    }[] = [];
+
+    tournament.participants.forEach((participant) => {
+      standings.push({
+        participantId: participant.id,
+        teamName: participant.team.name,
+        teamTag: participant.team.tag,
+        wins: 0,
+        losses: 0,
+      });
+    });
+
+    tournament.stages.forEach((stage) => {
+      stage.matches.forEach((match) => {
+        if (match.winner) {
+          match.participants.forEach((mp) => {
+            const standingEntry = standings.find(
+              (s) => s.participantId === mp.participant.id
+            );
+            if (standingEntry) {
+              if (mp.participant.id === match.winner) {
+                standingEntry.wins++;
+              } else {
+                standingEntry.losses++;
+              }
+            }
+          });
+        }
+      });
+    });
+
+    return standings.sort((a, b) => b.wins - a.wins);
+  };
+
   useEffect(() => {
     const fetchTournament = async () => {
       try {
@@ -142,7 +183,7 @@ export default function TournamentDetailPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <h3 className="font-semibold mb-2">Tournament Info</h3>
               <div className="space-y-2 text-sm text-indigo-100">
@@ -157,10 +198,38 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Standings</h3>
-              <div className="space-y-2 text-sm text-indigo-100">
-                <p>🏆 {tournament.participants.length} Teams Registered</p>
+            <div className="md:col-span-2">
+              <h3 className="font-semibold mb-4">Standings</h3>
+              <div className="bg-white/5 rounded-lg overflow-hidden">
+                <div className="space-y-2">
+                  {calculateStandings(tournament).length > 0 ? (
+                    calculateStandings(tournament).map((standing, index) => (
+                      <div
+                        key={standing.participantId}
+                        className="flex items-center justify-between p-3 hover:bg-white/10 transition"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="font-bold text-lg w-8 text-indigo-300">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <p className="font-semibold">{standing.teamName}</p>
+                            <p className="text-xs text-indigo-300">
+                              {standing.teamTag}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="font-semibold">
+                            {standing.wins}-{standing.losses}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-indigo-200 p-3">No completed matches yet</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
