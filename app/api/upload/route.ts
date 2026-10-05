@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,11 +29,10 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = await file.arrayBuffer();
-    const blob = await put(`players/${Date.now()}-${file.name}`, buffer, {
-      access: 'public',
-    });
+    const base64 = Buffer.from(buffer).toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json({ url: dataUrl });
   } catch (error) {
     console.error('Error uploading file:', error);
     return NextResponse.json(
