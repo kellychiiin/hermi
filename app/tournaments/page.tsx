@@ -128,12 +128,18 @@ export default function TournamentsPage() {
           <Link href="/" className="text-2xl font-bold text-white">
             Hermi
           </Link>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Link href="/tournaments" className="text-white hover:text-indigo-200 font-semibold">
               Tournaments
             </Link>
             <Link href="/admin" className="text-white hover:text-indigo-200">
               Admin
+            </Link>
+            <Link
+              href="/players/all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+            >
+              View All Players
             </Link>
           </div>
         </div>
