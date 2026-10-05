@@ -153,9 +153,11 @@ export default function RostersPage() {
   const selectedTeamData = teams.find((t) => t.id === selectedTeam);
   const teamRoster = rosters.filter((r) => r.teamId === selectedTeam);
 
-  const availablePlayers = players.filter((p) =>
-    !teamRoster.some((r) => r.playerId === p.id)
-  );
+  const availablePlayers = players.filter((p) => {
+    const isAlreadyInTeam = teamRoster.some((r) => r.playerId === p.id);
+    const matchesTeamGame = selectedTeamData?.game.id === (p.game?.id);
+    return !isAlreadyInTeam && matchesTeamGame;
+  });
 
   if (loading) {
     return (
