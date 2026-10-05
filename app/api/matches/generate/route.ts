@@ -16,8 +16,12 @@ export async function POST(request: NextRequest) {
     const stage = await prisma.stage.findUnique({
       where: { id: stageId },
       include: {
-        participants: {
-          orderBy: { seed: 'asc' },
+        tournament: {
+          include: {
+            participants: {
+              orderBy: { seed: 'asc' },
+            },
+          },
         },
       },
     });
@@ -29,14 +33,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (stage.participants.length < 2) {
+    const participants = stage.tournament.participants;
+
+    if (participants.length < 2) {
       return NextResponse.json(
         { error: 'Stage must have at least 2 participants' },
         { status: 400 }
       );
     }
-
-    const participants = stage.participants;
     const matches = [];
 
     if (stage.type === 'ROUND_ROBIN' || stage.type === 'GROUP') {
