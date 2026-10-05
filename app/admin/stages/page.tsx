@@ -23,6 +23,7 @@ export default function StagesPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,6 +56,7 @@ export default function StagesPage() {
     if (!confirm('Generate matches for this stage? This will create all matches based on the stage format.')) return;
 
     try {
+      setSubmitting(true);
       const res = await fetch('/api/matches/generate', {
         method: 'POST',
         headers: {
@@ -73,6 +75,8 @@ export default function StagesPage() {
     } catch (error) {
       console.error('Error generating matches:', error);
       alert(`Failed to generate matches: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -177,6 +181,17 @@ export default function StagesPage() {
           </div>
         )}
       </div>
+
+      {submitting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+            <p className="text-white font-semibold">Processing...</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
