@@ -5,8 +5,40 @@ export async function GET() {
     const completedTournaments = await prisma.tournament.findMany({
       where: { status: 'COMPLETED' },
       include: {
+        stages: {
+          include: {
+            matches: {
+              include: {
+                participants: {
+                  include: {
+                    participant: {
+                      include: {
+                        team: {
+                          include: {
+                            rosterMemberships: {
+                              include: {
+                                player: {
+                                  include: {
+                                    game: true,
+                                  },
+                                },
+                              },
+                              where: {
+                                endDate: null,
+                              },
+                            },
+                            game: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         participants: {
-          where: { placement: 1 },
           include: {
             team: {
               include: {
@@ -62,22 +94,52 @@ export async function GET() {
     }> = [];
 
     for (const tournament of completedTournaments) {
-      for (const participant of tournament.participants) {
-        // Add team champion
+      // Find tournament winner from final match
+      let winnerTeam = null;
+
+      // Get the last stage (finals/playoffs)
+      if (tournament.stages.length > 0) {
+        const lastStage = tournament.stages[tournament.stages.length - 1];
+
+        // Get the last match in the final stage
+        if (lastStage.matches.length > 0) {
+          const lastMatch = lastStage.matches[lastStage.matches.length - 1];
+          if (lastMatch.winner) {
+            // Find the winner's team
+            const winnerMatchParticipant = lastMatch.participants.find(
+              (mp) => mp.participant.id === lastMatch.winner
+            );
+            if (winnerMatchParticipant) {
+              winnerTeam = winnerMatchParticipant.participant.team;
+            }
+          }
+        }
+      }
+
+      // If no winner found from matches, try placement field
+      if (!winnerTeam && tournament.participants.length > 0) {
+        const placement1 = tournament.participants.find((p) => p.placement === 1);
+        if (placement1) {
+          winnerTeam = placement1.team;
+        }
+      }
+
+      // Add team champion if found
+      if (winnerTeam) {
         teamChampionsList.push({
-          id: participant.team.id,
-          name: participant.team.name,
-          tag: participant.team.tag,
+          id: winnerTeam.id,
+          name: winnerTeam.name,
+          tag: winnerTeam.tag,
           gameName: tournament.game.name,
           gameId: tournament.game.id,
-          logo: participant.team.logo,
+          logo: winnerTeam.logo,
           tournamentName: tournament.name,
           tournamentId: tournament.id,
           tournamentEndDate: tournament.endDate || tournament.startDate,
         });
 
-        // Add player champions
-        for (const membership of participant.team.rosterMemberships) {
+        // Add player champions from the winning team
+        for (const membership of winnerTeam.rosterMemberships) {
           const player = membership.player;
           const key = player.id;
 
