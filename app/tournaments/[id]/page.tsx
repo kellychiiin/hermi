@@ -98,6 +98,11 @@ function getTournamentWinner(tournament: Tournament): Participant | null {
 
 function calculateStandingsByStage(tournament: Tournament): Record<string, StandingEntry[]> {
   const standingsByStage: Record<string, StandingEntry[]> = {};
+
+  if (!tournament.participants || !tournament.stages) {
+    return standingsByStage;
+  }
+
   const tournamentLevelParticipants = tournament.participants.filter((p) => !p.stageId);
 
   for (const stage of tournament.stages) {
@@ -109,28 +114,36 @@ function calculateStandingsByStage(tournament: Tournament): Record<string, Stand
       teamStats[participant.id] = { wins: 0, losses: 0 };
     }
 
+    if (!stage.matches || stage.matches.length === 0) {
+      continue;
+    }
+
     for (const match of stage.matches) {
-      if (match.status === 'COMPLETED' && match.winner) {
+      if (match.status === 'COMPLETED' && match.winner && match.participants) {
         for (const mp of match.participants) {
-          if (mp.participant.id === match.winner) {
-            teamStats[mp.participant.id].wins++;
-          } else {
-            teamStats[mp.participant.id].losses++;
+          if (mp.participant?.id === match.winner) {
+            if (teamStats[mp.participant.id]) {
+              teamStats[mp.participant.id].wins++;
+            }
+          } else if (mp.participant?.id) {
+            if (teamStats[mp.participant.id]) {
+              teamStats[mp.participant.id].losses++;
+            }
           }
         }
       }
     }
 
     const standings = tournamentLevelParticipants
-      .filter((p) => stage.matches.some((m) =>
-        m.participants.some((mp) => mp.participant.id === p.id)
+      .filter((p) => stage.matches && stage.matches.some((m) =>
+        m.participants && m.participants.some((mp) => mp.participant?.id === p.id)
       ))
       .map((p) => ({
         participantId: p.id,
-        teamName: p.team.name,
-        teamTag: p.team.tag,
-        wins: teamStats[p.id].wins,
-        losses: teamStats[p.id].losses,
+        teamName: p.team?.name || 'Unknown',
+        teamTag: p.team?.tag || '-',
+        wins: teamStats[p.id]?.wins || 0,
+        losses: teamStats[p.id]?.losses || 0,
         stageName,
       }))
       .sort((a, b) => {
