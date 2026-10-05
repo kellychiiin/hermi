@@ -65,6 +65,7 @@ interface Participant {
         id: string;
         handle: string;
         realName: string | null;
+        photo: string | null;
       };
     }>;
   };
