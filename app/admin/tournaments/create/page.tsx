@@ -123,6 +123,16 @@ export default function CreateTournamentPage() {
           <h1 className="text-4xl font-bold text-white">Create Tournament</h1>
         </div>
 
+        <style>{`
+          select option {
+            background-color: #4c1d95;
+            color: white;
+          }
+          select option:checked {
+            background: linear-gradient(#4c1d95, #4c1d95);
+            background-color: #6d28d9;
+          }
+        `}</style>
         <form
           onSubmit={handleSubmit}
           className="bg-white/10 backdrop-blur-lg rounded-lg p-8 text-white"
@@ -159,6 +169,7 @@ export default function CreateTournamentPage() {
                 onChange={handleChange}
                 required
                 className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                style={{ colorScheme: 'dark' }}
               >
                 {games.map((game) => (
                   <option key={game.id} value={game.id}>
@@ -176,6 +187,7 @@ export default function CreateTournamentPage() {
                   value={formData.tier}
                   onChange={handleChange}
                   className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                  style={{ colorScheme: 'dark' }}
                 >
                   <option value="">Select Tier</option>
                   <option value="Pro">Pro</option>
@@ -194,6 +206,7 @@ export default function CreateTournamentPage() {
                   value={formData.status}
                   onChange={handleChange}
                   className="w-full bg-white/10 border border-indigo-400/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-400"
+                  style={{ colorScheme: 'dark' }}
                 >
                   <option value="UPCOMING">Upcoming</option>
                   <option value="ONGOING">Ongoing</option>
