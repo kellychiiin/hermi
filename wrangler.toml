@@ -1,8 +1,1 @@
 name = "hermi"
-pages_build_output_dir = ".next"
-
-[env.production]
-vars = { }
-
-# Environment variables should be added through Cloudflare Pages UI, not here
-# This keeps sensitive values out of version control
