@@ -12,6 +12,8 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@prisma/adapter-neon": "^7.10.0",
     "@prisma/client": "^5.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
