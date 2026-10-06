@@ -5,7 +5,7 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaNeon(pool);
+const adapter = new PrismaNeon(pool as any);
 
 export const prisma =
   globalForPrisma.prisma ||
